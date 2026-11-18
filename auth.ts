@@ -40,11 +40,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     // 3. Aquí pasamos los datos del JWT interno a la sesión pública del frontend
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.fullname = token.fullname as string;
-        session.user.rol = token.rol as string;
-        session.user.token = token.backendToken as string; // Tu token de FastAPI
+      if (token && session.user) {
+        Object.assign(session.user, {
+          id: token.id,
+          fullname: token.fullname,
+          rol: token.rol,
+          token: token.backendToken,
+        });
       }
       return session;
     }
