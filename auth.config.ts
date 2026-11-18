@@ -11,7 +11,7 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 export const authConfig = {
   pages: {
     signIn: "/login",
-    error: "/login", // ?error=AccessDenied cuando FastAPI rechaza
+    error: "/unauthorized", // ?error=AccessDenied cuando FastAPI rechaza
   },
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   providers: [
