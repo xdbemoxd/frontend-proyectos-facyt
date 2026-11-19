@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PROJECTS_KEY, projectsFetcher } from "./api";
-import type { Project } from "./types";
+import { PRIORITY_LOG_KEY, PROJECTS_KEY, priorityLogFetcher, projectsFetcher } from "./api";
+import type { PriorityChange, Project } from "./types";
 
 /**
  * Hook con la MISMA forma que devuelve useSWR: { data, error, isLoading, mutate }.
@@ -25,6 +25,33 @@ export function useProjects() {
     setIsLoading(true);
     try {
       const result = await projectsFetcher(PROJECTS_KEY);
+      setData(result);
+      setError(undefined);
+      return result;
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void mutate();
+  }, [mutate]);
+
+  return { data, error, isLoading, mutate };
+}
+
+/** Historial de cambios de prioridad (misma forma que useSWR). */
+export function usePriorityLog() {
+  const [data, setData] = useState<PriorityChange[] | undefined>(undefined);
+  const [error, setError] = useState<Error | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const mutate = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await priorityLogFetcher(PRIORITY_LOG_KEY);
       setData(result);
       setError(undefined);
       return result;

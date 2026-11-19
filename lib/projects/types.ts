@@ -26,3 +26,21 @@ export type Project = {
   create_at: string; // ISO
   updated_at: string; // ISO
 };
+
+/** Fila de private.audith_project (historial de cambios de prioridad). */
+export type PriorityChange = {
+  id: string;
+  project: { id: string; unique_code: string; name: string };
+  from_priority: string;
+  to_priority: string;
+  user: { id: string; full_name: string };
+  explaining: string;
+  created_at: string; // ISO
+};
+
+/** PATCH /projects/:id/priority */
+export type PriorityChangeInput = {
+  id_project: string;
+  id_priority: number;
+  explaining: string;
+};
