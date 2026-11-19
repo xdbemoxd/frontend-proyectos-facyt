@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { vendorSchema, type VendorFormErrors } from "@/lib/vendors/schema";
-import { createVendor } from "@/lib/vendors/api";
-import type { VendorInput } from "@/lib/vendors/types";
+import { createVendor, updateVendor } from "@/lib/vendors/api";
+import type { Vendor } from "@/lib/vendors/types";
 import { Button } from "@/components/ui/button";
 
 type FieldProps = {
@@ -47,11 +47,11 @@ function Field({ label, name, error, hint, required, defaultValue, type = "text"
 }
 
 type VendorFormProps = {
-  /** Para edicion; vacio = crear. */
-  initial?: Partial<VendorInput>;
+  /** Si viene, el formulario edita ese proveedor; si no, crea uno nuevo. */
+  vendor?: Vendor;
 };
 
-export function VendorForm({ initial }: VendorFormProps) {
+export function VendorForm({ vendor }: VendorFormProps) {
   const router = useRouter();
   const [errors, setErrors] = useState<VendorFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -77,7 +77,8 @@ export function VendorForm({ initial }: VendorFormProps) {
     setErrors({});
     setPending(true);
     try {
-      await createVendor(parsed.data);
+      if (vendor) await updateVendor(vendor.id, parsed.data, vendor.updated_at);
+      else await createVendor(parsed.data);
       router.push("/dashboard/vendors");
       router.refresh();
     } catch (err) {
@@ -93,15 +94,15 @@ export function VendorForm({ initial }: VendorFormProps) {
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
       )}
 
-      <Field label="Nombre" name="name" required maxLength={150} defaultValue={initial?.name} error={errors.name} />
+      <Field label="Nombre" name="name" required maxLength={150} defaultValue={vendor?.name} error={errors.name} />
       <Field label="Descripción" name="description" multiline maxLength={255}
-        defaultValue={initial?.description ?? ""} error={errors.description}
+        defaultValue={vendor?.description ?? ""} error={errors.description}
         hint="Qué suministra: reactivos, consumibles, equipos…" />
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Correo de contacto" name="contact_email" type="email" maxLength={255}
-          defaultValue={initial?.contact_email ?? ""} error={errors.contact_email} />
+          defaultValue={vendor?.contact_email ?? ""} error={errors.contact_email} />
         <Field label="Teléfono de contacto" name="contact_phone" type="tel" maxLength={20}
-          defaultValue={initial?.contact_phone ?? ""} error={errors.contact_phone} hint="Ej: +58 414-1234567" />
+          defaultValue={vendor?.contact_phone ?? ""} error={errors.contact_phone} hint="Ej: +58 414-1234567" />
       </div>
 
       <div className="flex justify-end gap-3 border-t pt-5">
@@ -110,7 +111,7 @@ export function VendorForm({ initial }: VendorFormProps) {
           Cancelar
         </Link>
         <Button type="submit" disabled={pending}>
-          {pending ? "Guardando…" : "Guardar proveedor"}
+          {pending ? "Guardando…" : vendor ? "Guardar cambios" : "Guardar proveedor"}
         </Button>
       </div>
     </form>

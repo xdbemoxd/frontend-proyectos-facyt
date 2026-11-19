@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useEquipment } from "@/lib/equipment/use-equipment";
 import { EQUIPMENT_STATUS } from "@/lib/equipment/mock";
 import { Button } from "@/components/ui/button";
+import { EditLink } from "@/components/forms/edit-link";
 import { EquipmentStatusBadge } from "./status-badge";
 
 export function EquipmentTable() {
@@ -80,6 +81,7 @@ export function EquipmentTable() {
                 <th scope="col" className="px-4 py-3">N.º de serie</th>
                 <th scope="col" className="px-4 py-3">Proveedor</th>
                 <th scope="col" className="px-4 py-3">Estado</th>
+                <th scope="col" className="px-4 py-3"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody>
@@ -93,6 +95,9 @@ export function EquipmentTable() {
                   <td className="px-4 py-3 font-mono text-xs">{u.serial_number ?? <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-4 py-3">{u.vendor.name}</td>
                   <td className="px-4 py-3"><EquipmentStatusBadge name={u.status.name} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <EditLink href={`/dashboard/equipment/${u.id}/edit`} label={u.equipment.name} />
+                  </td>
                 </tr>
               ))}
             </tbody>

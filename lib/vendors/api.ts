@@ -42,3 +42,28 @@ export async function createVendor(input: VendorInput): Promise<Vendor> {
   store = [...store, vendor];
   return vendor;
 }
+
+/** MAÑANA: fetch(`/api/vendors/${id}`) */
+export async function getVendor(id: string): Promise<Vendor | null> {
+  await delay(300);
+  return store.find((v) => v.id === id) ?? null;
+}
+
+/**
+ * Editar proveedor.
+ * MAÑANA: PATCH /api/vendors/:id con { ...input, updated_at: expectedUpdatedAt }.
+ * FastAPI responde 409 si el nombre ya existe o si updated_at no coincide
+ * (otra persona lo modificó antes).
+ */
+export async function updateVendor(id: string, input: VendorInput, expectedUpdatedAt: string): Promise<Vendor> {
+  await delay();
+  const current = store.find((v) => v.id === id);
+  if (!current) throw new Error("Proveedor no encontrado.");
+  if (current.updated_at !== expectedUpdatedAt) throw new Error("Otra persona modificó este registro mientras lo editabas. Recarga la página para ver los cambios.");
+  if (store.some((v) => v.id !== id && v.name.toLowerCase() === input.name.toLowerCase())) {
+    throw new Error("Ya existe un proveedor con ese nombre.");
+  }
+  const updated: Vendor = { ...current, ...input, updated_at: new Date().toISOString() };
+  store = store.map((v) => (v.id === id ? updated : v));
+  return updated;
+}

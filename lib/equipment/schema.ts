@@ -14,6 +14,11 @@ export const equipmentSchema = z.object({
 
 export type EquipmentFormErrors = Partial<Record<keyof z.input<typeof equipmentSchema>, string>>;
 
+/** Edición: el proveedor de la unidad no se cambia. */
+export const equipmentUpdateSchema = equipmentSchema.omit({ id_vendors: true });
+
+export type EquipmentUpdateErrors = Partial<Record<keyof z.input<typeof equipmentUpdateSchema>, string>>;
+
 /** `datetime-local` ("2026-11-19T08:00") -> ISO con zona. */
 const localDateTime = z
   .string()

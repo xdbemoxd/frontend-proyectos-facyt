@@ -31,3 +31,15 @@ export type RawMaterialInput = {
   vendors_id: string;
   minimun_stock: number;
 };
+
+/**
+ * PATCH /inventory/raw-materials/:supplier_item_id
+ * name, tipo y unidad son del material (afectan a todos sus proveedores);
+ * minimun_stock es de este proveedor. El stock NO se edita.
+ */
+export type RawMaterialUpdateInput = {
+  name: string;
+  resource_type_id: number;
+  unit: string;
+  minimun_stock: number;
+};

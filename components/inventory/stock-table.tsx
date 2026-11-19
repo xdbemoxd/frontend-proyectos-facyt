@@ -5,6 +5,7 @@ import { AlertTriangle, Search } from "lucide-react";
 import { useStock } from "@/lib/inventory/use-stock";
 import { RESOURCE_TYPES } from "@/lib/inventory/mock";
 import { Button } from "@/components/ui/button";
+import { EditLink } from "@/components/forms/edit-link";
 import { StockBadge } from "./stock-badge";
 
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
@@ -88,6 +89,7 @@ export function StockTable() {
                 <th scope="col" className="px-4 py-3 text-right">Stock actual</th>
                 <th scope="col" className="px-4 py-3 text-right">Mínimo</th>
                 <th scope="col" className="px-4 py-3">Estado</th>
+                <th scope="col" className="px-4 py-3"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody>
@@ -103,6 +105,9 @@ export function StockTable() {
                     {numFmt.format(i.minimun_stock)} {i.unit}
                   </td>
                   <td className="px-4 py-3"><StockBadge status={i.stock_status} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <EditLink href={`/dashboard/inventory/${i.supplier_item_id}/edit`} label={`${i.resource_name} (${i.vendor_name})`} />
+                  </td>
                 </tr>
               ))}
             </tbody>

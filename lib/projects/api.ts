@@ -1,5 +1,5 @@
-import { MOCK_PROJECTS, PRIORITY } from "./mock";
-import type { Project, PriorityChange, PriorityChangeInput } from "./types";
+import { MOCK_PROJECTS, PRIORITY, STATUS } from "./mock";
+import type { Project, PriorityChange, PriorityChangeInput, ProjectUpdateInput } from "./types";
 
 /** Claves de cache: con SWR seran las URLs de los endpoints. */
 export const PROJECTS_KEY = "/projects";
@@ -66,5 +66,34 @@ export async function changeProjectPriority(input: PriorityChangeInput): Promise
       created_at: now,
     },
   ];
+  return updated;
+}
+
+/** Un proyecto finalizado queda cerrado: no se edita. */
+export const isProjectLocked = (p: Project) => p.status.name === STATUS.finalizado.name;
+
+/** MAÑANA: fetch(`/api/projects/${id}`) */
+export async function getProject(id: string): Promise<Project | null> {
+  await delay(300);
+  return projects.find((p) => p.id === id) ?? null;
+}
+
+/**
+ * MAÑANA: PATCH /api/projects/:id con { ...input, updated_at: expectedUpdatedAt }.
+ * El backend ignora unique_code y prioridad, y responde 409 si updated_at no coincide.
+ */
+export async function updateProject(id: string, input: ProjectUpdateInput, expectedUpdatedAt: string): Promise<Project> {
+  await delay();
+  const project = projects.find((p) => p.id === id);
+  if (!project) throw new Error("Proyecto no encontrado.");
+  if (isProjectLocked(project)) throw new Error("Un proyecto finalizado no se puede editar.");
+  if (project.updated_at !== expectedUpdatedAt) throw new Error("Otra persona modificó este registro mientras lo editabas. Recarga la página para ver los cambios.");
+  const status = Object.values(STATUS).find((s) => s.id === input.id_status);
+  if (!status) throw new Error("Estatus no válido.");
+
+  const updated: Project = {
+    ...project, name: input.name, description: input.description, status, updated_at: new Date().toISOString(),
+  };
+  projects = projects.map((p) => (p.id === id ? updated : p));
   return updated;
 }

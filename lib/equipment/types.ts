@@ -50,3 +50,15 @@ export type ReservationInput = {
   end_date: string; // ISO
   purpose: string | null;
 };
+
+/**
+ * PATCH /equipment/:id. name y description son del equipo (afectan a todas
+ * sus unidades); el resto es de esta unidad. El proveedor no se cambia.
+ */
+export type EquipmentUpdateInput = {
+  name: string;
+  description: string | null;
+  id_status: number;
+  model: string | null;
+  serial_number: string | null;
+};

@@ -1,7 +1,7 @@
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { MOCK_VENDORS } from "@/lib/vendors/mock";
 import { EQUIPMENT_STATUS, MOCK_RESERVATIONS, MOCK_UNITS } from "./mock";
-import type { EquipmentInput, EquipmentUnit, Reservation, ReservationInput } from "./types";
+import type { EquipmentInput, EquipmentUnit, EquipmentUpdateInput, Reservation, ReservationInput } from "./types";
 
 /** Claves de cache: con SWR seran las URLs de los endpoints. */
 export const EQUIPMENT_KEY = "/equipment";
@@ -92,4 +92,51 @@ export async function createReservation(input: ReservationInput): Promise<Reserv
   };
   reservations = [...reservations, reservation];
   return reservation;
+}
+
+/** MAÑANA: fetch(`/api/equipment/${id}`) */
+export async function getEquipment(id: string): Promise<EquipmentUnit | null> {
+  await delay(300);
+  return units.find((u) => u.id === id) ?? null;
+}
+
+/** Reservas de la unidad que aún no terminan. */
+export function upcomingReservations(unitId: string): Reservation[] {
+  const now = new Date().toISOString();
+  return reservations.filter((r) => r.unit.id === unitId && r.end_date > now);
+}
+
+/**
+ * MAÑANA: PATCH /api/equipment/:id con { ...input, updated_at: expectedUpdatedAt }.
+ * El backend responde 409 si el serial se repite, si updated_at no coincide
+ * o si se pasa a mantenimiento con reservas pendientes.
+ */
+export async function updateEquipment(id: string, input: EquipmentUpdateInput, expectedUpdatedAt: string): Promise<EquipmentUnit> {
+  await delay();
+  const unit = units.find((u) => u.id === id);
+  if (!unit) throw new Error("Equipo no encontrado.");
+  if (unit.updated_at !== expectedUpdatedAt) throw new Error("Otra persona modificó este registro mientras lo editabas. Recarga la página para ver los cambios.");
+  const status = EQUIPMENT_STATUS.find((s) => s.id === input.id_status);
+  if (!status) throw new Error("Estado no válido.");
+  if (input.serial_number && units.some((u) => u.id !== id && u.serial_number === input.serial_number)) {
+    throw new Error("Ya existe un equipo con ese número de serie.");
+  }
+  if (status.name === "En mantenimiento" && unit.status.name !== "En mantenimiento") {
+    const pending = upcomingReservations(id);
+    if (pending.length > 0) {
+      throw new Error(
+        `No se puede pasar a mantenimiento: tiene ${pending.length} reserva(s) pendiente(s). Reprográmalas primero.`,
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  const equipment = { ...unit.equipment, name: input.name, description: input.description };
+  units = units.map((u) => {
+    if (u.id === id) {
+      return { ...u, equipment, status, model: input.model, serial_number: input.serial_number, updated_at: now };
+    }
+    return u.equipment.id === unit.equipment.id ? { ...u, equipment } : u;
+  });
+  return units.find((u) => u.id === id)!;
 }

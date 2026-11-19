@@ -2,7 +2,9 @@
 
 import { useProjects } from "@/lib/projects/use-projects";
 import type { Project } from "@/lib/projects/types";
+import { isProjectLocked } from "@/lib/projects/api";
 import { Button } from "@/components/ui/button";
+import { EditLink } from "@/components/forms/edit-link";
 
 const STATUS_STYLES: Record<string, string> = {
   Propuesta: "bg-slate-100 text-slate-700",
@@ -64,6 +66,10 @@ function Row({ p }: { p: Project }) {
       </td>
       <td className="px-3 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(p.create_at))}</td>
       <td className="px-3 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(p.updated_at))}</td>
+      <td className="px-3 py-3 text-right">
+        <EditLink href={`/dashboard/projects/${p.id}/edit`} label={p.name}
+          disabled={isProjectLocked(p)} disabledReason="Proyecto finalizado" />
+      </td>
     </tr>
   );
 }
@@ -103,6 +109,7 @@ export function ProjectsTable() {
             <th scope="col" className="px-3 py-2">Responsable</th>
             <th scope="col" className="px-3 py-2">Creado</th>
             <th scope="col" className="px-3 py-2">Actualizado</th>
+            <th scope="col" className="px-3 py-2"><span className="sr-only">Acciones</span></th>
           </tr>
         </thead>
         <tbody>

@@ -146,7 +146,10 @@ export function ReportsView() {
           <div>
             <h2 id="report-title" className="font-heading text-lg font-medium">{meta.title}</h2>
             <p className="text-xs text-muted-foreground">
-              Control de Proyectos FaCyT · generado el {dateTimeFmt.format(today)}
+              Control de Proyectos FaCyT · generado el{" "}
+              <time dateTime={today.toISOString()} suppressHydrationWarning>
+                {dateTimeFmt.format(today)}
+              </time>
             </p>
           </div>
           <div className="flex gap-2 print:hidden">

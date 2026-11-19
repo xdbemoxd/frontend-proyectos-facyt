@@ -16,3 +16,10 @@ export const rawMaterialSchema = z.object({
 });
 
 export type RawMaterialFormErrors = Partial<Record<keyof z.input<typeof rawMaterialSchema>, string>>;
+
+/** Edición: el proveedor y el stock no se tocan. */
+export const rawMaterialUpdateSchema = rawMaterialSchema.pick({
+  name: true, resource_type_id: true, unit: true, minimun_stock: true,
+});
+
+export type RawMaterialUpdateErrors = Partial<Record<keyof z.input<typeof rawMaterialUpdateSchema>, string>>;

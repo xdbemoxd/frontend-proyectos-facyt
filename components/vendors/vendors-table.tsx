@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { useVendors } from "@/lib/vendors/use-vendors";
 import { Button } from "@/components/ui/button";
+import { EditLink } from "@/components/forms/edit-link";
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
@@ -61,6 +62,7 @@ export function VendorsTable() {
                 <th scope="col" className="px-4 py-3">Teléfono</th>
                 <th scope="col" className="px-4 py-3">Registrado</th>
                 <th scope="col" className="px-4 py-3">Actualizado</th>
+                <th scope="col" className="px-4 py-3"><span className="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody>
@@ -82,6 +84,9 @@ export function VendorsTable() {
                   <td className="px-4 py-3 whitespace-nowrap">{v.contact_phone ?? <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-4 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(v.create_at))}</td>
                   <td className="px-4 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(v.updated_at))}</td>
+                  <td className="px-4 py-3 text-right">
+                    <EditLink href={`/dashboard/vendors/${v.id}/edit`} label={v.name} />
+                  </td>
                 </tr>
               ))}
             </tbody>

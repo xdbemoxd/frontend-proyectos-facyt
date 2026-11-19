@@ -44,3 +44,13 @@ export type PriorityChangeInput = {
   id_priority: number;
   explaining: string;
 };
+
+/**
+ * PATCH /projects/:id. El código y la prioridad NO van aquí
+ * (la prioridad se cambia con PATCH /projects/:id/priority y queda auditada).
+ */
+export type ProjectUpdateInput = {
+  name: string;
+  description: string | null;
+  id_status: number;
+};
