@@ -1,12 +1,15 @@
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import type { Metadata } from "next";
+import { PageHeader } from "@/components/layout/page-header";
+import { AuditView } from "@/components/audit/audit-view";
 
-export const metadata = { title: "Auditoría" };
+export const metadata: Metadata = { title: "Auditoría" };
 
-export default function Page() {
+export default function AuditPage() {
   return (
-    <PagePlaceholder
-      title="Auditoría"
-      description="Registro inmutable de las acciones del sistema."
-    />
+    <main className="p-6">
+      <PageHeader title="Auditoría"
+        description="Trazabilidad de las acciones del sistema: quién, qué, cuándo y desde dónde." />
+      <AuditView />
+    </main>
   );
 }

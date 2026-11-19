@@ -77,7 +77,7 @@ export function AppTopNav({ user, signOutAction }: AppTopNavProps) {
   return (
     <header
       ref={navRef}
-      className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70"
+      className="sticky top-0 z-40 border-b print:hidden bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70"
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link href="/dashboard" className="shrink-0 font-heading font-semibold">
