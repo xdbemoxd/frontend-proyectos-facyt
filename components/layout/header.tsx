@@ -1,4 +1,5 @@
 import { auth, signIn, signOut } from "@/auth";
+import { backendFetch } from "@/lib/backend";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -19,6 +20,13 @@ export async function Header() {
           <form
             action={async () => {
               "use server";
+              try {
+                await backendFetch("/api/user/auth/logout", {
+                  method: "POST",
+                });
+              } catch {
+                // Token expirado o sesion ya cerrada.
+              }
               await signOut({ redirectTo: "/" });
             }}
           >

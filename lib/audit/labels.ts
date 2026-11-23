@@ -21,6 +21,7 @@ export const ACTION_LABELS: Record<string, string> = {
   create_user_denied: "Intento de crear usuario",
   update_user_denied: "Intento de editar usuario",
   rbac_denied: "Acceso denegado",
+  logout: "Cerró sesión",
   bootstrap_create: "Creó usuario (bootstrap)",
   test_business_event: "Evento de prueba",
 };

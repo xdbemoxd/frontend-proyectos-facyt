@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/auth";
+import { backendFetch } from "@/lib/backend";
 import { Header } from "./header";
 import { AppTopNav } from "./app-topnav";
 
@@ -20,6 +21,11 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   async function signOutAction() {
     "use server";
+    try {
+      await backendFetch("/api/user/auth/logout", { method: "POST" });
+    } catch {
+      // Si el token ya expiro, igual se limpia la sesion local.
+    }
     await signOut({ redirectTo: "/" });
   }
 
