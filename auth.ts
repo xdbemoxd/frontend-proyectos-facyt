@@ -31,11 +31,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         } catch (error) {
           // Nunca loguear el error completo: incluye el id_token de Google.
-          const status = (error as { response?: { status?: number } })
-            ?.response?.status;
+          const details = error as {
+            code?: string;
+            message?: string;
+            response?: { status?: number };
+          };
           console.error(
             "Acceso denegado por el backend",
-            status ? `(HTTP ${status})` : "",
+            details.response?.status ?? details.code ?? "",
+            details.message ?? "",
           );
           // Al lanzar un error, NextAuth bloquea el inicio de sesión y redirige a la página de error
           throw new Error("No autorizado por el backend"); 
