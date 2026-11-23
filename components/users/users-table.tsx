@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { useUsers } from "@/lib/users/use-users";
-import { MOCK_ROLES, ROLE_LABELS } from "@/lib/users/mock";
+import { useRoles } from "@/lib/users/use-roles";
+import { roleLabel } from "@/lib/users/labels";
 import { userState } from "@/lib/users/types";
 import { Button } from "@/components/ui/button";
 import { UserStateBadge } from "./user-state-badge";
@@ -13,6 +14,7 @@ const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
 export function UsersTable() {
   const { data, error, isLoading, mutate } = useUsers();
+  const { roles } = useRoles();
   const [query, setQuery] = useState("");
   const [rol, setRol] = useState("");
 
@@ -49,7 +51,7 @@ export function UsersTable() {
           <select value={rol} onChange={(e) => setRol(e.target.value)}
             className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <option value="">Todos los roles</option>
-            {MOCK_ROLES.map((r) => <option key={r.id} value={r.name}>{ROLE_LABELS[r.name] ?? r.name}</option>)}
+            {roles.map((r) => <option key={r.id} value={r.name}>{roleLabel(r.name)}</option>)}
           </select>
         </label>
       </div>
@@ -80,7 +82,7 @@ export function UsersTable() {
                     </div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3">{ROLE_LABELS[u.rol.name] ?? u.rol.name}</td>
+                  <td className="px-4 py-3">{roleLabel(u.rol.name)}</td>
                   <td className="px-4 py-3"><UserStateBadge state={userState(u)} /></td>
                   <td className="px-4 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(u.create_at))}</td>
                   <td className="px-4 py-3 text-right">

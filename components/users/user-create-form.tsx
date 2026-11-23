@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { userCreateSchema, type UserCreateErrors } from "@/lib/users/schema";
 import { createUser } from "@/lib/users/api";
-import { MOCK_ROLES, ROLE_LABELS } from "@/lib/users/mock";
+import { useRoles } from "@/lib/users/use-roles";
+import { roleLabel } from "@/lib/users/labels";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function UserCreateForm() {
   const router = useRouter();
+  const { roles } = useRoles();
   const [errors, setErrors] = useState<UserCreateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -50,7 +52,7 @@ export function UserCreateForm() {
         hint="El correo con el que la persona iniciará sesión." />
       <SelectField id="usr-rol" name="id_rol" label="Rol" required defaultValue=""
         placeholder="Elige un rol"
-        options={MOCK_ROLES.map((r) => ({ value: r.id, label: `${ROLE_LABELS[r.name] ?? r.name} — ${r.description ?? ""}` }))}
+        options={roles.map((r) => ({ value: r.id, label: `${roleLabel(r.name)} — ${r.description ?? ""}` }))}
         error={errors.id_rol} />
 
       <p className="rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">

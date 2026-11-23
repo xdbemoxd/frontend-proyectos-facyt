@@ -47,6 +47,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           rol: token.rol,
           token: token.backendToken,
         });
+        if (typeof token.backendToken === "string") {
+          session.backendToken = token.backendToken;
+        }
       }
       return session;
     }

@@ -1,60 +1,90 @@
-import { MOCK_ROLES, MOCK_USERS } from "./mock";
-import type { AppUser, UserCreateInput, UserUpdateInput } from "./types";
+import type { AppUser, Role, UserCreateInput, UserUpdateInput } from "./types";
 
 export const USERS_KEY = "/users";
 
-let users: AppUser[] = [...MOCK_USERS];
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
+type BackendUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  lastname: string | null;
+  is_active: boolean;
+  id_rol: string;
+  rol: string | null;
+  create_at: string | null;
+};
 
-/** MAÑANA: fetch(`/api${key}`) */
-export async function usersFetcher(_key: string): Promise<AppUser[]> {
-  await delay();
-  return [...users].sort((a, b) => a.email.localeCompare(b.email));
-}
+type BackendPage = {
+  items: BackendUser[];
+  total: number;
+  limit: number;
+  offset: number;
+};
 
-/** MAÑANA: fetch(`/api/users/${id}`) */
-export async function getUser(id: string): Promise<AppUser | null> {
-  await delay(300);
-  return users.find((u) => u.id === id) ?? null;
-}
-
-/**
- * MAÑANA: POST /api/users. FastAPI responde 409 si el correo ya existe
- * (UNIQUE de email en la BD).
- */
-export async function createUser(input: UserCreateInput): Promise<AppUser> {
-  await delay();
-  const email = input.email.toLowerCase();
-  if (users.some((u) => u.email.toLowerCase() === email)) {
-    throw new Error("Ese correo ya está registrado.");
-  }
-  const rol = MOCK_ROLES.find((r) => r.id === input.id_rol);
-  if (!rol) throw new Error("Rol no válido.");
-  const user: AppUser = {
-    id: crypto.randomUUID(), email, name: null, lastname: null, is_active: false,
-    rol: { id: rol.id, name: rol.name }, create_at: new Date().toISOString(),
+function mapUser(user: BackendUser): AppUser {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    lastname: user.lastname,
+    is_active: user.is_active,
+    rol: { id: user.id_rol, name: user.rol ?? "" },
+    create_at: user.create_at ?? new Date(0).toISOString(),
   };
-  users = [...users, user];
-  return user;
 }
 
-/** MAÑANA: PATCH /api/users/:id */
-export async function updateUser(id: string, input: UserUpdateInput, currentUserEmail?: string | null): Promise<AppUser> {
-  await delay();
-  const user = users.find((u) => u.id === id);
-  const rol = MOCK_ROLES.find((r) => r.id === input.id_rol);
-  if (!user || !rol) throw new Error("Usuario o rol no válido.");
-
-  const isSelf = !!currentUserEmail && user.email.toLowerCase() === currentUserEmail.toLowerCase();
-  if (isSelf && (rol.name !== user.rol.name || !input.is_active)) {
-    throw new Error("No puedes cambiar tu propio rol ni desactivar tu cuenta.");
+async function readError(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    if (typeof data?.detail === "string") return data.detail;
+    if (Array.isArray(data?.detail)) {
+      return data.detail.map((item: { msg?: string }) => item.msg).filter(Boolean).join(" ");
+    }
+  } catch {
+    // La respuesta no era JSON.
   }
-  const admins = users.filter((u) => u.rol.name === "admin_sistema" && u.is_active);
-  if (user.rol.name === "admin_sistema" && admins.length === 1 && (rol.name !== "admin_sistema" || !input.is_active)) {
-    throw new Error("Debe quedar al menos un administrador activo.");
-  }
+  return `Error ${response.status}`;
+}
 
-  const updated: AppUser = { ...user, rol: { id: rol.id, name: rol.name }, is_active: input.is_active };
-  users = users.map((u) => (u.id === id ? updated : u));
-  return updated;
+export async function usersFetcher(_key: string): Promise<AppUser[]> {
+  const response = await fetch("/api/users?limit=200", { cache: "no-store" });
+  if (!response.ok) throw new Error(await readError(response));
+  const page = (await response.json()) as BackendPage;
+  return page.items.map(mapUser);
+}
+
+export async function getUser(id: string): Promise<AppUser | null> {
+  const response = await fetch(`/api/users/${id}`, { cache: "no-store" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(await readError(response));
+  return mapUser((await response.json()) as BackendUser);
+}
+
+export async function createUser(input: UserCreateInput): Promise<AppUser> {
+  const response = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return mapUser((await response.json()) as BackendUser);
+}
+
+export async function updateUser(
+  id: string,
+  input: UserUpdateInput,
+  _currentUserEmail?: string | null,
+): Promise<AppUser> {
+  const response = await fetch(`/api/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return mapUser((await response.json()) as BackendUser);
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+  const response = await fetch("/api/roles", { cache: "no-store" });
+  if (!response.ok) throw new Error(await readError(response));
+  return (await response.json()) as Role[];
 }

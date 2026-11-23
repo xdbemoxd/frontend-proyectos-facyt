@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { userUpdateSchema, type UserUpdateErrors } from "@/lib/users/schema";
 import { getUser, updateUser } from "@/lib/users/api";
-import { MOCK_ROLES, ROLE_LABELS } from "@/lib/users/mock";
+import { useRoles } from "@/lib/users/use-roles";
+import { roleLabel } from "@/lib/users/labels";
 import { userState, type AppUser } from "@/lib/users/types";
 import { Button } from "@/components/ui/button";
 import { SelectField, zodFieldErrors } from "@/components/forms/form-field";
@@ -15,6 +16,7 @@ type Props = { id: string; currentUserEmail: string | null };
 
 export function UserEditForm({ id, currentUserEmail }: Props) {
   const router = useRouter();
+  const { roles } = useRoles();
   const [user, setUser] = useState<AppUser | null | undefined>(undefined);
   const [errors, setErrors] = useState<UserUpdateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export function UserEditForm({ id, currentUserEmail }: Props) {
 
       <SelectField id="usr-edit-rol" name="id_rol" label="Rol" required defaultValue={user.rol.id}
         disabled={isSelf}
-        options={MOCK_ROLES.map((r) => ({ value: r.id, label: ROLE_LABELS[r.name] ?? r.name }))}
+        options={roles.map((r) => ({ value: r.id, label: roleLabel(r.name) }))}
         error={errors.id_rol} />
       {isSelf && <input type="hidden" name="id_rol" value={user.rol.id} />}
 
