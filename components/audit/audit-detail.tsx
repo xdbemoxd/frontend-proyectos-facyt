@@ -56,9 +56,56 @@ export function AuditDetail({ entry, onClose }: { entry: AuditEntry; onClose: ()
           <dd>{entry.entity_label ?? <span className="text-muted-foreground">—</span>}</dd>
           <dt className="text-muted-foreground">ID</dt>
           <dd className="break-all font-mono text-xs">{entry.entity_id ?? "—"}</dd>
-          <dt className="text-muted-foreground">Dirección IP</dt>
-          <dd className="font-mono text-xs">{entry.ip_address}</dd>
         </dl>
+
+        <section aria-labelledby="http-title" className="mt-6">
+          <h3 id="http-title" className="mb-2 text-sm font-medium">Petición HTTP</h3>
+          <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Método</dt>
+            <dd className="font-mono text-xs">{entry.method ?? "—"}</dd>
+            <dt className="text-muted-foreground">Endpoint</dt>
+            <dd className="break-all font-mono text-xs">{entry.path ?? "—"}</dd>
+            <dt className="text-muted-foreground">Status</dt>
+            <dd className="font-mono text-xs">{entry.status_code ?? "—"}</dd>
+            <dt className="text-muted-foreground">Duración</dt>
+            <dd>{entry.duration_ms != null ? `${entry.duration_ms} ms` : "—"}</dd>
+            <dt className="text-muted-foreground">IP</dt>
+            <dd className="break-all font-mono text-xs">{entry.ip_address}</dd>
+            <dt className="text-muted-foreground">Request ID</dt>
+            <dd className="break-all font-mono text-xs">{entry.request_id ?? "—"}</dd>
+            <dt className="text-muted-foreground">User-Agent</dt>
+            <dd className="break-all text-xs">{entry.user_agent ?? "—"}</dd>
+            {entry.error_code && (
+              <>
+                <dt className="text-muted-foreground">Error</dt>
+                <dd className="break-all text-xs">{entry.error_code}</dd>
+              </>
+            )}
+            {entry.error_detail && (
+              <>
+                <dt className="text-muted-foreground">Detalle</dt>
+                <dd className="break-all text-xs">{entry.error_detail}</dd>
+              </>
+            )}
+          </dl>
+
+          {entry.query_params && Object.keys(entry.query_params).length > 0 && (
+            <details className="mt-3 text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Query params</summary>
+              <pre className="mt-2 overflow-x-auto rounded-lg bg-muted p-3">
+                {JSON.stringify(entry.query_params, null, 2)}
+              </pre>
+            </details>
+          )}
+          {entry.request_headers && Object.keys(entry.request_headers).length > 0 && (
+            <details className="mt-3 text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Headers (redactados)</summary>
+              <pre className="mt-2 overflow-x-auto rounded-lg bg-muted p-3">
+                {JSON.stringify(entry.request_headers, null, 2)}
+              </pre>
+            </details>
+          )}
+        </section>
 
         <section aria-labelledby="changes-title" className="mt-6">
           <h3 id="changes-title" className="mb-2 text-sm font-medium">Qué cambió</h3>

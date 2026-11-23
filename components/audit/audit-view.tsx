@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Activity, ChevronLeft, ChevronRight, Lock, ShieldAlert, XCircle } from "lucide-react";
 import { useAudit } from "@/lib/audit/use-audit";
-import { AUDIT_USERS } from "@/lib/audit/mock";
+import { useUsers } from "@/lib/users/use-users";
 import { ENTITY_LABELS, OUTCOME_LABELS, actionLabel, entityLabel } from "@/lib/audit/labels";
 import type { AuditEntry, AuditFilters, Outcome } from "@/lib/audit/types";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ export function AuditView() {
   const [filters, setFilters] = useState<AuditFilters>(defaultFilters);
   const [selected, setSelected] = useState<AuditEntry | null>(null);
   const { data, error, isLoading, mutate } = useAudit(filters);
+  const { data: users } = useUsers();
 
   const set = (patch: Partial<AuditFilters>) => setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
   const toggleOutcome = (o?: Outcome) => set({ outcome: filters.outcome === o ? undefined : o });
@@ -86,7 +87,11 @@ export function AuditView() {
           <select value={filters.user_id ?? ""} className={control}
             onChange={(e) => set({ user_id: e.target.value || undefined })}>
             <option value="">Todos</option>
-            {AUDIT_USERS.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+            {(users ?? []).map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name ? `${u.name} ${u.lastname ?? ""}`.trim() : u.email}
+              </option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -128,6 +133,7 @@ export function AuditView() {
                 <th scope="col" className="px-4 py-3">Fecha y hora</th>
                 <th scope="col" className="px-4 py-3">Usuario</th>
                 <th scope="col" className="px-4 py-3">Acción</th>
+                <th scope="col" className="px-4 py-3">Petición</th>
                 <th scope="col" className="px-4 py-3">Entidad</th>
                 <th scope="col" className="px-4 py-3">Resultado</th>
                 <th scope="col" className="px-4 py-3">IP</th>
@@ -146,6 +152,19 @@ export function AuditView() {
                     {e.user ? e.user.full_name : <span className="text-muted-foreground">Usuario eliminado</span>}
                   </td>
                   <td className="px-4 py-3">{actionLabel(e.action)}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {e.method || e.path ? (
+                      <span>
+                        {e.method}
+                        {e.path && <span className="text-muted-foreground"> {e.path}</span>}
+                        {e.status_code != null && (
+                          <span className="ml-1 text-muted-foreground">({e.status_code})</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div>{entityLabel(e.entity)}</div>
                     {e.entity_label && <div className="text-xs text-muted-foreground">{e.entity_label}</div>}
