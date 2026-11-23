@@ -17,7 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // 'account' solo tiene datos en el momento exacto en que el usuario hace login
       if (account?.provider === "google") {
         try {
-          const response = await api.post('/user/auth/google/login', {
+          const response = await api.post('/api/user/auth/google/login', {
             id_token: account.id_token
           });
           
@@ -30,7 +30,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.backendToken = data.token; // El JWT que genera tu backend
 
         } catch (error) {
-          console.error("Acceso denegado por el backend:", error);
+          // Nunca loguear el error completo: incluye el id_token de Google.
+          const status = (error as { response?: { status?: number } })
+            ?.response?.status;
+          console.error(
+            "Acceso denegado por el backend",
+            status ? `(HTTP ${status})` : "",
+          );
           // Al lanzar un error, NextAuth bloquea el inicio de sesión y redirige a la página de error
           throw new Error("No autorizado por el backend"); 
         }
