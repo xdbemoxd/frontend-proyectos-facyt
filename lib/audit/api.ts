@@ -123,7 +123,19 @@ async function readError(response: Response): Promise<string> {
   return `Error ${response.status}`;
 }
 
-export async function auditFetcher(key: string): Promise<AuditPage> {
+const inFlight = new Map<string, Promise<AuditPage>>();
+
+/** Deduplica peticiones concurrentes (p. ej. StrictMode en desarrollo). */
+export function auditFetcher(key: string): Promise<AuditPage> {
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const request = fetchAudit(key).finally(() => inFlight.delete(key));
+  inFlight.set(key, request);
+  return request;
+}
+
+async function fetchAudit(key: string): Promise<AuditPage> {
   const q = new URLSearchParams(key.split("?")[1] ?? "");
   const page = Math.max(1, Number(q.get("page")) || 1);
   const from = q.get("from") ?? "";

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Activity, ChevronLeft, ChevronRight, Lock, ShieldAlert, XCircle } from "lucide-react";
 import { useAudit } from "@/lib/audit/use-audit";
-import { useUsers } from "@/lib/users/use-users";
 import { ENTITY_LABELS, OUTCOME_LABELS, actionLabel, entityLabel } from "@/lib/audit/labels";
-import type { AuditEntry, AuditFilters, Outcome } from "@/lib/audit/types";
+import type { AuditEntry, AuditFilters, AuditUser, Outcome } from "@/lib/audit/types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { OutcomeBadge } from "./outcome-badge";
 import { AuditDetail } from "./audit-detail";
 
@@ -41,11 +41,47 @@ function StatCard({ label, value, icon: Icon, tone, active, onClick }: {
   );
 }
 
+function AuditLoadingState() {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed bg-card/60 p-10 text-center"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <Spinner className="size-12" label="Cargando registros de auditoría" />
+      <div className="space-y-1">
+        <p className="text-sm font-medium">Cargando auditoría…</p>
+        <p className="text-xs text-muted-foreground">
+          Consultando peticiones, usuarios y eventos de seguridad.
+        </p>
+      </div>
+      <div className="mt-2 w-full max-w-md space-y-2" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <div
+            key={index}
+            className="h-9 animate-pulse rounded-lg bg-muted/70"
+            style={{ animationDelay: `${index * 120}ms` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AuditView() {
   const [filters, setFilters] = useState<AuditFilters>(defaultFilters);
   const [selected, setSelected] = useState<AuditEntry | null>(null);
   const { data, error, isLoading, mutate } = useAudit(filters);
-  const { data: users } = useUsers();
+
+  // Evita una segunda peticion pesada (/api/users) solo para el filtro.
+  const users = Array.from(
+    new Map<string, AuditUser>(
+      (data?.items ?? [])
+        .map((entry) => entry.user)
+        .filter((user): user is AuditUser => user !== null)
+        .map((user) => [user.id, user]),
+    ).values(),
+  );
 
   const set = (patch: Partial<AuditFilters>) => setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
   const toggleOutcome = (o?: Outcome) => set({ outcome: filters.outcome === o ? undefined : o });
@@ -87,9 +123,9 @@ export function AuditView() {
           <select value={filters.user_id ?? ""} className={control}
             onChange={(e) => set({ user_id: e.target.value || undefined })}>
             <option value="">Todos</option>
-            {(users ?? []).map((u) => (
+            {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name ? `${u.name} ${u.lastname ?? ""}`.trim() : u.email}
+                {u.full_name}
               </option>
             ))}
           </select>
@@ -119,13 +155,21 @@ export function AuditView() {
           <Button variant="outline" size="sm" onClick={() => mutate()}>Reintentar</Button>
         </div>
       ) : !data ? (
-        <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando registros…</p>
+        <AuditLoadingState />
       ) : data.items.length === 0 ? (
         <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           No hay registros con estos filtros.
         </p>
       ) : (
-        <div className={`overflow-x-auto rounded-xl border transition-opacity ${isLoading ? "opacity-60" : ""}`} aria-busy={isLoading}>
+        <div className={`relative overflow-x-auto rounded-xl border transition-opacity ${isLoading ? "opacity-60" : ""}`} aria-busy={isLoading}>
+          {isLoading && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
+              <div className="flex items-center gap-3 rounded-full border bg-card px-4 py-2 shadow-sm">
+                <Spinner className="size-5" label="Actualizando auditoría" />
+                <span className="text-xs text-muted-foreground">Actualizando…</span>
+              </div>
+            </div>
+          )}
           <table className="w-full text-left text-sm">
             <caption className="sr-only">Registro de auditoría. Selecciona una fila para ver el detalle.</caption>
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
