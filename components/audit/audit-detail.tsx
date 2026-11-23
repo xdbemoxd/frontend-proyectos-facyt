@@ -65,7 +65,7 @@ export function AuditDetail({ entry, onClose }: { entry: AuditEntry; onClose: ()
             <dd className="font-mono text-xs">{entry.method ?? "—"}</dd>
             <dt className="text-muted-foreground">Endpoint</dt>
             <dd className="break-all font-mono text-xs">{entry.path ?? "—"}</dd>
-            <dt className="text-muted-foreground">Status</dt>
+            <dt className="text-muted-foreground">Código HTTP</dt>
             <dd className="font-mono text-xs">{entry.status_code ?? "—"}</dd>
             <dt className="text-muted-foreground">Duración</dt>
             <dd>{entry.duration_ms != null ? `${entry.duration_ms} ms` : "—"}</dd>

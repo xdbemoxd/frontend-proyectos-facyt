@@ -8,6 +8,7 @@ import type { AuditEntry, AuditFilters, AuditUser, Outcome } from "@/lib/audit/t
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { OutcomeBadge } from "./outcome-badge";
+import { HttpStatusBadge } from "./http-status-badge";
 import { AuditDetail } from "./audit-detail";
 
 const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" });
@@ -178,6 +179,8 @@ export function AuditView() {
                 <th scope="col" className="px-4 py-3">Usuario</th>
                 <th scope="col" className="px-4 py-3">Acción</th>
                 <th scope="col" className="px-4 py-3">Petición</th>
+                <th scope="col" className="px-4 py-3">Código HTTP</th>
+                <th scope="col" className="px-4 py-3">User-Agent</th>
                 <th scope="col" className="px-4 py-3">Entidad</th>
                 <th scope="col" className="px-4 py-3">Resultado</th>
                 <th scope="col" className="px-4 py-3">IP</th>
@@ -201,9 +204,21 @@ export function AuditView() {
                       <span>
                         {e.method}
                         {e.path && <span className="text-muted-foreground"> {e.path}</span>}
-                        {e.status_code != null && (
-                          <span className="ml-1 text-muted-foreground">({e.status_code})</span>
-                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <HttpStatusBadge status={e.status_code} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {e.user_agent ? (
+                      <span
+                        className="block max-w-[220px] truncate font-mono text-xs"
+                        title={e.user_agent}
+                      >
+                        {e.user_agent}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
