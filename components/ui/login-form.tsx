@@ -8,6 +8,7 @@ import { Button } from "./button";
 const ERRORS: Record<string, string> = {
   AccessDenied: "Tu cuenta no está habilitada. Solicita acceso a un administrador.",
   Configuration: "El inicio de sesión no está disponible. Intenta más tarde.",
+  SessionExpired: "Tu sesión expiró o fue revocada. Inicia sesión de nuevo.",
 };
 
 function SubmitButton() {

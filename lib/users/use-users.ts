@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { signOut } from "next-auth/react";
 import { USERS_KEY, usersFetcher } from "./api";
 import type { AppUser } from "./types";
 
@@ -21,6 +22,10 @@ export function useUsers() {
       setError(undefined);
       return result;
     } catch (e) {
+      if (e instanceof Error && e.message === "No autenticado") {
+        await signOut({ redirectTo: "/login?error=SessionExpired" });
+        return;
+      }
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
       setIsLoading(false);
