@@ -175,13 +175,16 @@ sustituye la del backend.
 | Inventario, lotes, despachos | Mock en memoria |
 | Equipos y reservas | Mock en memoria |
 | Solicitudes de gasto | Conectado al backend real (BFF + SWR) |
-| Overhead y reportes | Overhead real; reportes consumen los hooks reales |
+| Overhead y reportes | Overhead real; reportes XLSX/PDF descargados del backend |
 
-Las solicitudes de gasto y el prorrateo ya no usan snapshots locales: los
-reportes de gastos y overhead leen los mismos hooks reales
-(`useExpenses`/`useOverheadPeriods`). Los BFF routes validan los cuerpos con Zod
-y reenvían el Bearer de la sesión; el backend vuelve a validar rol, alcance,
-máquina de estados y cuadre del reparto.
+Las solicitudes de gasto y el prorrateo ya no usan snapshots locales. La vista
+previa de reportes lee los hooks reales (`useExpenses`, `useOverheadPeriods`,
+`useEquipment`/`useReservations`), y los botones Excel/PDF descargan archivos
+generados por el backend mediante el BFF binario
+(`/api/reports/[type]/[format]`), que conserva `Content-Type` y
+`Content-Disposition`. Los BFF routes validan los cuerpos/parámetros y reenvían
+el Bearer de la sesión; el backend vuelve a validar rol, alcance, máquina de
+estados y cuadre del reparto.
 
 Los mocks que quedan en otros módulos están marcados con comentarios `MAÑANA:` y
 `auditUiEvent(...)`. Al conectar esos endpoints reales, cada mutación debe

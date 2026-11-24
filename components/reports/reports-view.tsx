@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { useExpenses } from "@/lib/expenses/use-expenses";
 import { useOverheadPeriods } from "@/lib/overhead/use-overhead";
 import { useEquipment, useReservations } from "@/lib/equipment/use-equipment";
-import { downloadCsv, type Column } from "@/lib/reports/export";
+import {
+  downloadReport,
+  type ReportFormat,
+} from "@/lib/reports/download";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -23,12 +26,21 @@ const money = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD
 const asDate = (d: string) => dateFmt.format(new Date(d.length === 10 ? `${d}T12:00:00` : d));
 
 type Row = Record<string, string | number | null>;
-type Report = { columns: Column<Row>[]; rows: Row[]; summary: string[] };
+type ReportColumn = {
+  header: string;
+  value: (row: Row) => string | number | null;
+};
+type Report = { columns: ReportColumn[]; rows: Row[]; summary: string[] };
 
-const col = (header: string, key: string): Column<Row> => ({ header, value: (r) => r[key] ?? null });
+const col = (header: string, key: string): ReportColumn => ({
+  header,
+  value: (r) => r[key] ?? null,
+});
 
 export function ReportsView({ canViewOverhead = false }: { canViewOverhead?: boolean }) {
   const [active, setActive] = useState<ReportId>("expenses");
+  const [pendingFormat, setPendingFormat] = useState<ReportFormat | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const expenses = useExpenses();
   const periods = useOverheadPeriods(canViewOverhead);
   const units = useEquipment();
@@ -131,15 +143,34 @@ export function ReportsView({ canViewOverhead = false }: { canViewOverhead?: boo
     return null;
   }, [active, expenses.data, periods.data, units.data, reservations.data]);
 
-  const meta = visibleReports.find((r) => r.id === active)!;  const today = new Date();
-  const stamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const meta = visibleReports.find((r) => r.id === active)!;
+  const today = new Date();
+  const hasData = Boolean(report && report.rows.length > 0);
+  const busy = pendingFormat !== null;
+
+  async function handleDownload(format: ReportFormat) {
+    if (!hasData || busy) return;
+    setPendingFormat(format);
+    setDownloadError(null);
+    try {
+      await downloadReport(active, format);
+    } catch (error) {
+      setDownloadError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el reporte."
+      );
+    } finally {
+      setPendingFormat(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <div role="tablist" aria-label="Tipo de reporte" className="grid gap-3 sm:grid-cols-3 print:hidden">
         {visibleReports.map((r) => (
           <button key={r.id} type="button" role="tab" aria-selected={active === r.id}
-            onClick={() => setActive(r.id)}
+            onClick={() => { setActive(r.id); setDownloadError(null); }}
             className={`rounded-xl border bg-card p-4 text-left text-card-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring ${active === r.id ? "ring-2 ring-ring" : ""}`}>
             <p className="font-medium">{r.title}</p>
             <p className="mt-1 text-xs text-muted-foreground">{r.description}</p>
@@ -158,18 +189,45 @@ export function ReportsView({ canViewOverhead = false }: { canViewOverhead?: boo
               </time>
             </p>
           </div>
-          <div className="flex gap-2 print:hidden">
-            <Button variant="outline" size="sm" disabled={!report?.rows.length}
-              onClick={() => report && downloadCsv(`${active}-${stamp}`, report.columns, report.rows)}>
-              <FileSpreadsheet className="size-4" aria-hidden="true" />
-              Excel
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasData || busy}
+              aria-busy={pendingFormat === "xlsx"}
+              onClick={() => handleDownload("xlsx")}
+            >
+              {pendingFormat === "xlsx" ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <FileSpreadsheet className="size-4" aria-hidden="true" />
+              )}
+              {pendingFormat === "xlsx" ? "Generando…" : "Excel (XLSX)"}
             </Button>
-            <Button size="sm" disabled={!report?.rows.length} onClick={() => window.print()}>
-              <Printer className="size-4" aria-hidden="true" />
-              PDF
+            <Button
+              size="sm"
+              disabled={!hasData || busy}
+              aria-busy={pendingFormat === "pdf"}
+              onClick={() => handleDownload("pdf")}
+            >
+              {pendingFormat === "pdf" ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <FileText className="size-4" aria-hidden="true" />
+              )}
+              {pendingFormat === "pdf" ? "Generando…" : "PDF"}
             </Button>
           </div>
         </div>
+
+        {downloadError ? (
+          <p
+            role="alert"
+            className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          >
+            {downloadError}
+          </p>
+        ) : null}
 
         {loadError ? (
           <p role="alert" className="rounded-xl border border-destructive/30 p-6 text-sm text-destructive">
