@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
 import useSWR from "swr";
 import { auditFetcher, auditKey, auditUsersFetcher } from "./api";
+import { handleSessionExpired } from "@/lib/session";
 import type { AuditFilters, AuditPage, AuditUser } from "./types";
 
 /**
@@ -30,7 +30,7 @@ export function useAudit(filters: AuditFilters) {
     } catch (e) {
       if (current !== requestId.current) return;
       if (e instanceof Error && e.message === "No autenticado") {
-        await signOut({ redirectTo: "/login?error=SessionExpired" });
+        handleSessionExpired();
         return;
       }
       setError(e instanceof Error ? e : new Error(String(e)));

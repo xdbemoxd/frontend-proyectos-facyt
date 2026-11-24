@@ -1,11 +1,15 @@
 /** Utilidades HTTP compartidas por los modulos que ya usan el backend real. */
 
+import { handleSessionExpired } from "@/lib/session";
+
 export async function errorFromResponse(
   response: Response,
   fallback: string
 ): Promise<Error> {
-  if (response.status === 401)
+  if (response.status === 401) {
+    handleSessionExpired();
     return new Error("Tu sesión expiró. Vuelve a iniciar sesión.");
+  }
   if (response.status === 403)
     return new Error("No tienes permiso para esta acción.");
   if (response.status === 422)

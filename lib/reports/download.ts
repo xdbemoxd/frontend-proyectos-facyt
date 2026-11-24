@@ -6,6 +6,8 @@
  * archivo como JSON.
  */
 
+import { handleSessionExpired } from "@/lib/session";
+
 export type ReportType = "expenses" | "overhead" | "equipment";
 export type ReportFormat = "xlsx" | "pdf";
 
@@ -55,6 +57,7 @@ function triggerDownload(blob: Blob, filename: string) {
 
 async function errorMessage(response: Response): Promise<string> {
   if (response.status === 401) {
+    handleSessionExpired();
     return "Tu sesión expiró. Vuelve a iniciar sesión.";
   }
   if (response.status === 403) {

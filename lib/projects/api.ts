@@ -1,4 +1,5 @@
 import { mutate } from "swr"
+import { handleSessionExpired } from "@/lib/session"
 import type {
   Catalog,
   PriorityChange,
@@ -88,8 +89,10 @@ async function errorFromResponse(
   response: Response,
   fallback: string
 ): Promise<Error> {
-  if (response.status === 401)
+  if (response.status === 401) {
+    handleSessionExpired()
     return new Error("Tu sesión expiró. Vuelve a iniciar sesión.")
+  }
   if (response.status === 403)
     return new Error("No tienes permiso para esta acción.")
 

@@ -1,15 +1,15 @@
 "use client";
 
-import { signOut } from "next-auth/react";
 import useSWR, { mutate } from "swr";
 import { getUserById, getUsers, type UsersPage, type UsersQuery } from "@/services/users.service";
+import { handleSessionExpired } from "@/lib/session";
 import type { AppUser } from "@/lib/users/types";
 
 export const USERS_KEY = "users";
 
 function handleAuthError(error: Error) {
-  if (error.message.includes("sesión expiró")) {
-    void signOut({ redirectTo: "/login?error=SessionExpired" });
+  if (error.message.includes("sesión expiró") || error.message.includes("No autenticado")) {
+    handleSessionExpired();
   }
 }
 

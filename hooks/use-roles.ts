@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { getRoles } from "@/services/roles.service";
+import { handleSessionExpired } from "@/lib/session";
 import { roleLabel } from "@/lib/users/labels";
 import type { Role, RoleOption } from "@/lib/roles/types";
 
@@ -15,6 +16,11 @@ export function useRoles() {
   const swr = useSWR<Role[], Error>(ROLES_KEY, () => getRoles(), {
     revalidateOnFocus: false, // los roles casi nunca cambian
     dedupingInterval: 5 * 60 * 1000,
+    onError: (error) => {
+      if (error.message.includes("sesión expiró") || error.message.includes("No autenticado")) {
+        handleSessionExpired();
+      }
+    },
   });
 
   const options: RoleOption[] = (swr.data ?? []).map((r) => ({
