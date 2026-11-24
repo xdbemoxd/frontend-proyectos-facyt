@@ -11,8 +11,8 @@ export async function Header() {
   const session = await auth();
 
   return (
-    <header className="flex items-center justify-between border-b px-6 py-3">
-      <span className="font-medium">Control de Proyectos FaCyT</span>
+    <header className="flex items-center justify-between gap-3 border-b px-6 py-3">
+      <span className="min-w-0 truncate font-medium">Control de Proyectos FaCyT</span>
 
       {session?.user ? (
         <div className="flex items-center gap-3">

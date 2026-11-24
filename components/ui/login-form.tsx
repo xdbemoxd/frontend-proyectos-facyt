@@ -30,13 +30,13 @@ export default function LoginForm() {
 
   return (
     <form action={signInWithGoogle} className="space-y-3">
-      <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
-        <h1 className="mb-3 text-2xl">Inicia sesión para continuar</h1>
-        <p className="text-sm text-gray-600">Usa tu cuenta institucional de Google.</p>
+      <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+        <h1 className="mb-3 font-heading text-2xl">Inicia sesión para continuar</h1>
+        <p className="text-sm text-muted-foreground">Usa tu cuenta institucional de Google.</p>
         <input type="hidden" name="redirectTo" value={callbackUrl} />
         <SubmitButton />
-        <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
-          {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
+        <div className="mt-3 min-h-8" aria-live="polite" aria-atomic="true">
+          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
         </div>
       </div>
     </form>

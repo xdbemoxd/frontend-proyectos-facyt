@@ -119,7 +119,7 @@ export function AuditDetail({ entry, onClose }: { entry: AuditEntry; onClose: ()
               <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3">Después: {diff.raw.after ?? "—"}</pre>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
