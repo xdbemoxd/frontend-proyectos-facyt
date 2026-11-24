@@ -2,6 +2,7 @@ import { auth, signIn } from "@/auth";
 import { redirect } from "next/navigation";
 import { Boxes, CalendarClock, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AtomArt, MoleculeArt } from "@/components/landing/chemistry-art";
 
 export const metadata = { title: "Inicio" };
 
@@ -28,11 +29,16 @@ export default async function HomePage() {
   if (session?.user) redirect("/dashboard");
 
   return (
-    <main className="relative flex-1 overflow-hidden">
+    <main className="relative flex min-h-[calc(100vh-3.5rem)] flex-1 flex-col justify-center overflow-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,color-mix(in_oklch,var(--primary),transparent_92%),transparent)]"
       />
+
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden xl:block">
+        <AtomArt className="absolute top-[calc(50%-12rem)] -left-24 h-[24rem] w-[24rem] text-foreground/15" />
+        <MoleculeArt className="absolute top-[calc(50%-13rem)] -right-24 h-[26rem] w-[26rem] text-foreground/15 motion-safe:animate-[drift_16s_ease-in-out_infinite]" />
+      </div>
 
       <div className="relative mx-auto flex max-w-5xl flex-col gap-16 px-6 py-16 sm:py-24">
         <section className="flex flex-col items-center text-center">
