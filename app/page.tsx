@@ -23,10 +23,6 @@ const MODULES = [
   },
 ];
 
-/**
- * Portada publica. No consulta ni muestra datos del sistema: los proyectos,
- * el inventario y la auditoria solo se ven con sesion iniciada.
- */
 export default async function HomePage() {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
@@ -40,11 +36,7 @@ export default async function HomePage() {
 
       <div className="relative mx-auto flex max-w-5xl flex-col gap-16 px-6 py-16 sm:py-24">
         <section className="flex flex-col items-center text-center">
-          <span className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
-            Sistema interno · Facultad de Ciencias y Tecnología
-          </span>
-
-          <h1 className="mt-6 font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          <h1 className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
             Control de proyectos y recursos
           </h1>
 
