@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { getStockSnapshot } from "@/lib/inventory/api";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { EXPENSE_STATUS, MOCK_EXPENSES, TRANSITIONS } from "./mock";
@@ -43,6 +44,7 @@ export async function createExpense(input: ExpenseInput): Promise<Expense> {
     modifiet_at: now,
   };
   expenses = [...expenses, expense];
+  void mutate(EXPENSES_KEY);
   return expense;
 }
 
@@ -59,5 +61,6 @@ export async function changeExpenseStatus(id: string, to: ExpenseStatusCode): Pr
   }
   const updated: Expense = { ...expense, status: EXPENSE_STATUS[to], modifiet_at: new Date().toISOString() };
   expenses = expenses.map((e) => (e.id === id ? updated : e));
+  void mutate(EXPENSES_KEY);
   return updated;
 }

@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { getDispatchSnapshot } from "@/lib/dispatch/api";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { allocate, type ProjectConsumption } from "./calc";
@@ -76,5 +77,6 @@ export async function closePeriod(input: ClosePeriodInput): Promise<OverheadPeri
     })),
   };
   periods = [...periods, period];
+  void mutate(OVERHEAD_KEY);
   return period;
 }

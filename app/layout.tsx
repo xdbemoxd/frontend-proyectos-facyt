@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SWRProvider } from "@/components/providers/swr-provider"
 import { AppShell } from "@/components/layout/app-shell"
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,9 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <SWRProvider>
+            <AppShell>{children}</AppShell>
+          </SWRProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { MOCK_VENDORS } from "@/lib/vendors/mock";
 import { EQUIPMENT_STATUS, MOCK_RESERVATIONS, MOCK_UNITS } from "./mock";
@@ -45,6 +46,7 @@ export async function createEquipment(input: EquipmentInput): Promise<EquipmentU
     updated_at: now,
   };
   units = [...units, unit];
+  void mutate(EQUIPMENT_KEY);
   return unit;
 }
 
@@ -91,6 +93,7 @@ export async function createReservation(input: ReservationInput): Promise<Reserv
     created_date: new Date().toISOString(),
   };
   reservations = [...reservations, reservation];
+  void mutate(RESERVATIONS_KEY);
   return reservation;
 }
 
@@ -138,5 +141,6 @@ export async function updateEquipment(id: string, input: EquipmentUpdateInput, e
     }
     return u.equipment.id === unit.equipment.id ? { ...u, equipment } : u;
   });
+  void mutate(EQUIPMENT_KEY);
   return units.find((u) => u.id === id)!;
 }

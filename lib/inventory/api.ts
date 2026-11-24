@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { MOCK_VENDORS } from "@/lib/vendors/mock";
 import { MOCK_STOCK, RESOURCE_TYPES } from "./mock";
 import type { RawMaterialInput, RawMaterialUpdateInput, StockItem } from "./types";
@@ -55,6 +56,7 @@ export async function createRawMaterial(input: RawMaterialInput): Promise<StockI
     ...statusOf(0, input.minimun_stock),
   };
   store = [...store, item];
+  void mutate(STOCK_KEY);
   return item;
 }
 
@@ -69,6 +71,7 @@ export function mockAdjustStock(supplierItemId: string, delta: number): void {
     if (current < 0) throw new Error("Stock insuficiente.");
     return { ...s, current_stock: current, ...statusOf(current, s.minimun_stock) };
   });
+  void mutate(STOCK_KEY);
 }
 
 export const getStockSnapshot = (): StockItem[] => store;
@@ -112,5 +115,6 @@ export async function updateRawMaterial(supplierItemId: string, input: RawMateri
       ? { ...base, minimun_stock: input.minimun_stock, ...statusOf(s.current_stock, input.minimun_stock) }
       : base;
   });
+  void mutate(STOCK_KEY);
   return store.find((s) => s.supplier_item_id === supplierItemId)!;
 }

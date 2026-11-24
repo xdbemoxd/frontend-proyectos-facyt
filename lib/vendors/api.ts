@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { MOCK_VENDORS } from "./mock";
 import type { Vendor, VendorInput } from "./types";
 
@@ -40,6 +41,7 @@ export async function createVendor(input: VendorInput): Promise<Vendor> {
   const now = new Date().toISOString();
   const vendor: Vendor = { id: crypto.randomUUID(), ...input, create_at: now, updated_at: now };
   store = [...store, vendor];
+  void mutate(VENDORS_KEY);
   return vendor;
 }
 
@@ -65,5 +67,6 @@ export async function updateVendor(id: string, input: VendorInput, expectedUpdat
   }
   const updated: Vendor = { ...current, ...input, updated_at: new Date().toISOString() };
   store = store.map((v) => (v.id === id ? updated : v));
+  void mutate(VENDORS_KEY);
   return updated;
 }

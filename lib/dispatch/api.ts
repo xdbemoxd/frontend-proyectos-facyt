@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { getStockSnapshot, mockAdjustStock } from "@/lib/inventory/api";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import type { Dispatch, DispatchInput } from "./types";
@@ -76,6 +77,7 @@ export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
     notes: input.notes,
   };
   dispatches = [...dispatches, dispatch];
+  void mutate(DISPATCH_KEY);
   return dispatch;
 }
 

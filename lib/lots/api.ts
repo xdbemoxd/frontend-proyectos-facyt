@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { getStockSnapshot, mockAdjustStock } from "@/lib/inventory/api";
 import type { Lot, LotInput } from "./types";
 
@@ -73,5 +74,6 @@ export async function createLot(input: LotInput): Promise<Lot> {
     created_at: new Date().toISOString(),
   };
   lots = [...lots, lot];
+  void mutate(LOTS_KEY);
   return lot;
 }

@@ -1,3 +1,4 @@
+import { mutate } from "swr";
 import { MOCK_PROJECTS, PRIORITY, STATUS } from "./mock";
 import type { Project, PriorityChange, PriorityChangeInput, ProjectUpdateInput } from "./types";
 
@@ -66,6 +67,8 @@ export async function changeProjectPriority(input: PriorityChangeInput): Promise
       created_at: now,
     },
   ];
+  void mutate(PROJECTS_KEY);
+  void mutate(PRIORITY_LOG_KEY);
   return updated;
 }
 
@@ -95,5 +98,6 @@ export async function updateProject(id: string, input: ProjectUpdateInput, expec
     ...project, name: input.name, description: input.description, status, updated_at: new Date().toISOString(),
   };
   projects = projects.map((p) => (p.id === id ? updated : p));
+  void mutate(PROJECTS_KEY);
   return updated;
 }
