@@ -1,0 +1,34 @@
+# Dependencias y artefactos de build
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+
+# Control de versiones e IDE
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Secretos: nunca copiar .env.local/.env a la imagen
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentacion (no se necesita en runtime)
+README.md
+CLAUDE.md
+AGENTS.md

@@ -52,7 +52,7 @@ export async function dispatchFetcher(_key: string): Promise<Dispatch[]> {
 
 /**
  * MAÑANA: POST /api/inventory/dispatch. El backend SOLO inserta; el trigger
- * `fn_trg_dispatch_deduct_stock` valida y resta el stock. Si no alcanza,
+ * `trg_dispatch_log_subtract_stock` valida y resta el stock. Si no alcanza,
  * FastAPI debe responder 409 con el mensaje de la BD.
  */
 export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
