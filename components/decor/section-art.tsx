@@ -56,8 +56,8 @@ export function SectionArt({ variant, className }: { variant: SectionArtVariant;
     <div
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute -top-14 -right-14 hidden h-64 w-64 text-foreground/10 md:block",
-        "[mask-image:radial-gradient(circle_at_top_right,black,transparent_72%)]",
+        "pointer-events-none absolute -top-16 -right-16 hidden h-72 w-72 text-foreground/25 md:block",
+        "[mask-image:radial-gradient(circle_at_top_right,black_40%,transparent_100%)]",
         "print:hidden",
         className,
       )}
