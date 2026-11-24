@@ -55,7 +55,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: "Materias primas", href: "/dashboard/inventory", icon: Boxes },
       { label: "Asignación de materias primas", href: "/dashboard/inventory/dispatch", icon: PackageMinus },
-      { label: "Lotes de compra", href: "/dashboard/inventory/lots", icon: PackagePlus, roles: ADMIN_OR_APPROVER },
+      { label: "Lotes de compra", href: "/dashboard/inventory/lots", icon: PackagePlus },
       { label: "Proveedores", href: "/dashboard/vendors", icon: Truck, roles: ADMIN_OR_APPROVER },
     ],
   },

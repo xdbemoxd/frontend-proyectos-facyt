@@ -1,123 +1,163 @@
 import { mutate } from "swr";
 import { auditUiEvent } from "@/lib/audit/ui-event";
-import { MOCK_VENDORS } from "@/lib/vendors/mock";
-import { MOCK_STOCK, RESOURCE_TYPES } from "./mock";
-import type { RawMaterialInput, RawMaterialUpdateInput, StockItem } from "./types";
-
-/** Clave de cache: con SWR sera la URL del endpoint (GET /inventory/stock). */
-export const STOCK_KEY = "/inventory/stock";
-
-let store: StockItem[] = [...MOCK_STOCK];
-
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
-
-/** Misma regla que la vista SQL. */
-function statusOf(current: number, min: number): Pick<StockItem, "stock_status" | "is_critical"> {
-  return {
-    stock_status: current <= 0 ? "Agotado" : current <= min ? "Alerta Stock Mínimo" : "Normal",
-    is_critical: current <= min,
-  };
-}
+import { fetchJson } from "@/lib/http";
+import { MOCK_STOCK } from "./mock";
+import type {
+  InventoryCatalogs,
+  RawMaterialInput,
+  RawMaterialUpdateInput,
+  StockItem,
+} from "./types";
 
 /**
- * MAÑANA:
- *   const res = await fetch(`/api${key}`);
- *   if (!res.ok) throw new Error("No se pudo cargar el inventario");
- *   const rows = await res.json();
- *   // Numeric llega como string desde FastAPI:
- *   return rows.map((r) => ({ ...r, current_stock: Number(r.current_stock), minimun_stock: Number(r.minimun_stock) }));
+ * Clave SWR del flujo principal: apunta al BFF (mismo origen), que reenvía el
+ * Bearer al backend y devuelve el stock real de `v_inventory_stock_status`.
  */
-export async function stockFetcher(_key: string): Promise<StockItem[]> {
-  await delay();
-  return [...store].sort((a, b) => a.resource_name.localeCompare(b.resource_name, "es"));
+export const STOCK_KEY = "/api/inventory/stock?limit=200";
+export const INVENTORY_CATALOGS_KEY = "/api/inventory/catalogs";
+
+type RawStockItem = Omit<
+  StockItem,
+  "current_stock" | "minimun_stock" | "has_movements"
+> & {
+  current_stock: number | string;
+  minimun_stock: number | string;
+  has_movements?: boolean;
+};
+
+type Paginated<T> = { items: T[]; total: number; limit: number; offset: number };
+
+function normalizeStock(raw: RawStockItem): StockItem {
+  return {
+    ...raw,
+    current_stock: Number(raw.current_stock ?? 0),
+    minimun_stock: Number(raw.minimun_stock ?? 0),
+    has_movements: Boolean(raw.has_movements),
+  };
 }
 
-/** MAÑANA: POST /api/inventory/raw-materials con `input`. */
-export async function createRawMaterial(input: RawMaterialInput): Promise<StockItem> {
-  await delay();
-  const vendor = MOCK_VENDORS.find((v) => v.id === input.vendors_id);
-  const type = RESOURCE_TYPES.find((t) => t.id === input.resource_type_id);
-  if (!vendor || !type) throw new Error("Proveedor o tipo de recurso no válido.");
+/** Fetcher con la firma de SWR: (key) => Promise<StockItem[]>. */
+export async function stockFetcher(key: string): Promise<StockItem[]> {
+  const page = await fetchJson<Paginated<RawStockItem>>(
+    key,
+    { method: "GET" },
+    "No se pudo cargar el inventario."
+  );
+  return page.items.map(normalizeStock);
+}
 
-  const existing = store.find((s) => s.resource_name.toLowerCase() === input.name.toLowerCase());
-  // Mismo UNIQUE que la BD: (raw_materials_id, vendors_id)
-  if (existing && store.some((s) => s.resource_id === existing.resource_id && s.vendor_name === vendor.name)) {
-    throw new Error("Esa materia prima ya está registrada con ese proveedor.");
-  }
+/** GET /api/inventory/catalogs: tipos de recurso y proveedores reales. */
+export async function inventoryCatalogsFetcher(
+  key: string
+): Promise<InventoryCatalogs> {
+  return fetchJson<InventoryCatalogs>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los catálogos."
+  );
+}
 
-  const item: StockItem = {
-    supplier_item_id: crypto.randomUUID(),
-    resource_id: existing?.resource_id ?? crypto.randomUUID(),
-    resource_name: existing?.resource_name ?? input.name,
-    resource_type: existing?.resource_type ?? type.name,
-    unit: existing?.unit ?? input.unit,
-    vendor_name: vendor.name,
-    current_stock: 0,
-    minimun_stock: input.minimun_stock,
-    ...statusOf(0, input.minimun_stock),
-  };
-  store = [...store, item];
+/** POST /api/inventory/raw-materials (solo admin/aprobador). */
+export async function createRawMaterial(
+  input: RawMaterialInput
+): Promise<StockItem> {
+  const created = await fetchJson<RawStockItem>(
+    "/api/inventory/raw-materials",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo guardar la materia prima."
+  );
+
+  const item = normalizeStock(created);
   void mutate(STOCK_KEY);
-  auditUiEvent({ entity: "RawMaterial", action: "create", summary: input.name });
+  auditUiEvent({
+    entity: "RawMaterial",
+    action: "create",
+    summary: item.resource_name,
+  });
   return item;
 }
 
 /**
- * Solo para el MOCK: suma (o resta) stock como lo hara el trigger de la BD
- * al insertar un lote (o un despacho). Con el backend real esto desaparece.
+ * PATCH /api/inventory/raw-materials/:supplierItemId.
+ * El backend responde 409 si la unidad cambió y el material ya tiene
+ * movimientos, o si el nombre duplica otro material.
  */
+export async function updateRawMaterial(
+  supplierItemId: string,
+  input: RawMaterialUpdateInput
+): Promise<StockItem> {
+  const updated = await fetchJson<RawStockItem>(
+    `/api/inventory/raw-materials/${encodeURIComponent(supplierItemId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo guardar la materia prima."
+  );
+
+  const item = normalizeStock(updated);
+  void mutate(STOCK_KEY);
+  auditUiEvent({
+    entity: "RawMaterial",
+    action: "update",
+    summary: item.resource_name,
+  });
+  return item;
+}
+
+/** GET /api/inventory/stock/:id. null si no existe o el id no es válido. */
+export async function getStockItem(
+  supplierItemId: string
+): Promise<StockItem | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/inventory/stock/${encodeURIComponent(supplierItemId)}`,
+      { method: "GET" }
+    );
+  } catch {
+    throw new Error("No se pudo conectar con el servidor.");
+  }
+
+  if (response.status === 404 || response.status === 422) return null;
+  if (response.status === 403)
+    throw new Error("No tienes permiso para ver este registro.");
+  if (!response.ok) throw new Error("No se pudo cargar la materia prima.");
+  return normalizeStock((await response.json()) as RawStockItem);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Fallback SOLO para los módulos que aún son mock (gastos / prorrateo).      */
+/* El flujo principal de inventario, lotes y despachos ya usa el backend.     */
+/* ------------------------------------------------------------------------- */
+
+let store: StockItem[] = [...MOCK_STOCK];
+
+/** Foto en memoria de los datos demo; NO refleja el stock real del backend. */
+export const getStockSnapshot = (): StockItem[] => store;
+
+/** Simula el trigger de stock para los módulos demo. */
 export function mockAdjustStock(supplierItemId: string, delta: number): void {
   store = store.map((s) => {
     if (s.supplier_item_id !== supplierItemId) return s;
     const current = Math.round((s.current_stock + delta) * 100) / 100;
     if (current < 0) throw new Error("Stock insuficiente.");
-    return { ...s, current_stock: current, ...statusOf(current, s.minimun_stock) };
+    return {
+      ...s,
+      current_stock: current,
+      stock_status:
+        current <= 0
+          ? "Agotado"
+          : current <= s.minimun_stock
+            ? "Alerta Stock Mínimo"
+            : "Normal",
+      is_critical: current <= s.minimun_stock,
+    };
   });
   void mutate(STOCK_KEY);
-}
-
-export const getStockSnapshot = (): StockItem[] => store;
-
-/** MAÑANA: fetch(`/api/inventory/stock/${id}`) */
-export async function getStockItem(supplierItemId: string): Promise<StockItem | null> {
-  await delay(300);
-  return store.find((s) => s.supplier_item_id === supplierItemId) ?? null;
-}
-
-/**
- * ¿El material ya tuvo entradas o salidas? Si sí, su unidad no se puede cambiar
- * (los lotes y despachos viejos quedarían en otra unidad).
- * MOCK: se aproxima con "tiene stock". Con el backend: existe algún lote o despacho.
- */
-export function hasStockMovements(resourceId: string): boolean {
-  return store.some((s) => s.resource_id === resourceId && s.current_stock > 0);
-}
-
-/**
- * MAÑANA: PATCH /api/inventory/raw-materials/:supplier_item_id con `input`.
- * El backend rechaza (409) el cambio de unidad si hay lotes o despachos.
- */
-export async function updateRawMaterial(supplierItemId: string, input: RawMaterialUpdateInput): Promise<StockItem> {
-  await delay();
-  const item = store.find((s) => s.supplier_item_id === supplierItemId);
-  if (!item) throw new Error("Materia prima no encontrada.");
-  const type = RESOURCE_TYPES.find((t) => t.id === input.resource_type_id);
-  if (!type) throw new Error("Tipo de recurso no válido.");
-  if (input.unit !== item.unit && hasStockMovements(item.resource_id)) {
-    throw new Error("No se puede cambiar la unidad: el material ya tiene movimientos de stock.");
-  }
-  if (store.some((s) => s.resource_id !== item.resource_id && s.resource_name.toLowerCase() === input.name.toLowerCase())) {
-    throw new Error("Ya existe otra materia prima con ese nombre.");
-  }
-
-  store = store.map((s) => {
-    if (s.resource_id !== item.resource_id) return s;
-    const base = { ...s, resource_name: input.name, resource_type: type.name, unit: input.unit };
-    return s.supplier_item_id === supplierItemId
-      ? { ...base, minimun_stock: input.minimun_stock, ...statusOf(s.current_stock, input.minimun_stock) }
-      : base;
-  });
-  void mutate(STOCK_KEY);
-  auditUiEvent({ entity: "RawMaterial", action: "update", summary: input.name });
-  return store.find((s) => s.supplier_item_id === supplierItemId)!;
 }

@@ -19,3 +19,12 @@ export const vendorSchema = z.object({
 });
 
 export type VendorFormErrors = Partial<Record<keyof z.input<typeof vendorSchema>, string>>;
+
+/** PATCH /api/vendors/:id: los mismos campos + bloqueo optimista. */
+export const vendorUpdateSchema = vendorSchema.extend({
+  expected_updated_at: z.string().min(1, "Falta la versión del registro."),
+});
+
+export type VendorUpdateErrors = Partial<
+  Record<keyof z.input<typeof vendorUpdateSchema>, string>
+>;

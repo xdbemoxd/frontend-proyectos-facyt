@@ -6,13 +6,14 @@ import Link from "next/link";
 import { dispatchSchema, type DispatchFormErrors } from "@/lib/dispatch/schema";
 import { createDispatch } from "@/lib/dispatch/api";
 import { useStock } from "@/lib/inventory/use-stock";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
+import { useProjects } from "@/lib/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function DispatchForm() {
   const router = useRouter();
   const { data: stock, isLoading: loadingStock } = useStock();
+  const { data: projects, isLoading: loadingProjects } = useProjects();
   const [errors, setErrors] = useState<DispatchFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -22,9 +23,10 @@ export function DispatchForm() {
   const selected = stock?.find((s) => s.supplier_item_id === itemId);
   const remaining = selected ? selected.current_stock - (Number(qty) || 0) : null;
   const exceeds = remaining !== null && remaining < 0;
-  // Despachos y gastos siguen siendo mock: usan el catalogo mock hasta que
-  // esos modulos se conecten al backend (el backend de proyectos ya es real).
-  const activeProjects = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución");
+  // Solo proyectos en ejecución; el backend valida que exista el proyecto.
+  const activeProjects = (projects ?? []).filter(
+    (p) => p.status.name === "En ejecución"
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,7 +63,7 @@ export function DispatchForm() {
       )}
 
       <SelectField id="dsp-project" name="id_project" label="Proyecto destino" required defaultValue=""
-        placeholder="Elige un proyecto"
+        placeholder={loadingProjects ? "Cargando…" : "Elige un proyecto"}
         options={activeProjects.map((p) => ({ value: p.id, label: `${p.unique_code} · ${p.name}` }))}
         error={errors.id_project} hint="Solo proyectos en ejecución." />
 

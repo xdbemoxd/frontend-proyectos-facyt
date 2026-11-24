@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { rawMaterialSchema, type RawMaterialFormErrors } from "@/lib/inventory/schema";
 import { createRawMaterial } from "@/lib/inventory/api";
-import { RESOURCE_TYPES, UNITS } from "@/lib/inventory/mock";
+import { useInventoryCatalogs } from "@/lib/inventory/use-stock";
+import { UNITS } from "@/lib/inventory/mock";
 import { useVendors } from "@/lib/vendors/use-vendors";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
@@ -13,6 +14,7 @@ import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/compon
 export function RawMaterialForm() {
   const router = useRouter();
   const { data: vendors, isLoading: loadingVendors } = useVendors();
+  const { data: catalogs, isLoading: loadingCatalogs } = useInventoryCatalogs();
   const [errors, setErrors] = useState<RawMaterialFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -55,8 +57,8 @@ export function RawMaterialForm() {
           error={errors.description} />
         <div className="grid gap-5 sm:grid-cols-2">
           <SelectField id="rm-type" name="resource_type_id" label="Tipo" required defaultValue=""
-            placeholder="Elige un tipo"
-            options={RESOURCE_TYPES.map((t) => ({ value: t.id, label: t.name }))}
+            placeholder={loadingCatalogs ? "Cargando…" : "Elige un tipo"}
+            options={(catalogs?.resource_types ?? []).map((t) => ({ value: t.id, label: t.name }))}
             error={errors.resource_type_id} />
           <SelectField id="rm-unit" name="unit" label="Unidad" required defaultValue="unidad"
             options={UNITS.map((u) => ({ value: u, label: u }))}

@@ -16,6 +16,17 @@ export type StockItem = {
   minimun_stock: number;
   stock_status: "Agotado" | "Alerta Stock Mínimo" | "Normal";
   is_critical: boolean;
+  /** True si ya tiene lotes/despachos: la unidad no se puede cambiar. */
+  has_movements?: boolean;
+};
+
+/** Proveedor mínimo del catálogo (sin datos de contacto). */
+export type CatalogVendor = { id: string; name: string };
+
+/** GET /api/inventory/catalogs */
+export type InventoryCatalogs = {
+  resource_types: ResourceType[];
+  vendors: CatalogVendor[];
 };
 
 /**

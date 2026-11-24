@@ -1,91 +1,68 @@
 import { mutate } from "swr";
 import { auditUiEvent } from "@/lib/audit/ui-event";
-import { getStockSnapshot, mockAdjustStock } from "@/lib/inventory/api";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
+import { STOCK_KEY } from "@/lib/inventory/api";
+import { fetchJson } from "@/lib/http";
+import { MOCK_DISPATCH } from "./mock";
 import type { Dispatch, DispatchInput } from "./types";
 
-export const DISPATCH_KEY = "/inventory/dispatch";
+/** Clave SWR del flujo principal: bitácora real vía BFF. */
+export const DISPATCH_KEY = "/api/inventory/dispatch?limit=200";
 
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
+type RawDispatch = Omit<Dispatch, "use_raw_materials"> & {
+  use_raw_materials: number | string;
+};
 
-let dispatches: Dispatch[] = [
-  {
-    id: "01940000-0001-7000-8000-000000000001",
-    supplier_item: { id: "0193e000-0001-7000-8000-000000000001", resource_name: "Nitrato de plata", vendor_name: "Químicos del Centro C.A.", unit: "g" },
-    project: { id: "0193a1b2-0001-7000-8000-000000000001", unique_code: "FACYT-QUI-2026-001", name: "Síntesis de nanopartículas de plata" },
-    user: { id: "u-1", full_name: "María Rivas" },
-    use_raw_materials: 50,
-    material_requested_at: "2026-11-12T14:20:00Z",
-    notes: "Lote de síntesis n.º 4.",
-  },
-  {
-    id: "01940000-0002-7000-8000-000000000002",
-    supplier_item: { id: "0193e000-0002-7000-8000-000000000002", resource_name: "Guantes de nitrilo talla M", vendor_name: "LabSupply Venezuela", unit: "caja" },
-    project: { id: "0193a1b2-0001-7000-8000-000000000001", unique_code: "FACYT-QUI-2026-001", name: "Síntesis de nanopartículas de plata" },
-    user: { id: "u-1", full_name: "María Rivas" },
-    use_raw_materials: 2,
-    material_requested_at: "2026-11-14T12:05:00Z",
-    notes: null,
-  },
-  {
-    id: "01940000-0003-7000-8000-000000000003",
-    supplier_item: { id: "0193e000-0004-7000-8000-000000000004", resource_name: "Papel absorbente", vendor_name: "LabSupply Venezuela", unit: "paquete" },
-    project: { id: "0193a1b2-0002-7000-8000-000000000002", unique_code: "FACYT-BIO-2026-004", name: "Biorremediación de suelos contaminados" },
-    user: { id: "u-2", full_name: "José Pérez" },
-    use_raw_materials: 8,
-    material_requested_at: "2026-11-16T15:40:00Z",
-    notes: "Preparación de muestras.",
-  },
-];
+type Paginated<T> = { items: T[]; total: number; limit: number; offset: number };
 
-/**
- * MAÑANA:
- *   const res = await fetch(`/api${key}`);
- *   if (!res.ok) throw new Error("No se pudo cargar la bitácora");
- *   const rows = await res.json();
- *   return rows.map((r) => ({ ...r, use_raw_materials: Number(r.use_raw_materials) }));
- */
-export async function dispatchFetcher(_key: string): Promise<Dispatch[]> {
-  await delay();
-  return [...dispatches].sort((a, b) => b.material_requested_at.localeCompare(a.material_requested_at));
+function normalizeDispatch(raw: RawDispatch): Dispatch {
+  return {
+    ...raw,
+    use_raw_materials: Number(raw.use_raw_materials ?? 0),
+  };
+}
+
+/** Fetcher SWR: bitácora real (el coordinador solo ve sus proyectos). */
+export async function dispatchFetcher(key: string): Promise<Dispatch[]> {
+  const page = await fetchJson<Paginated<RawDispatch>>(
+    key,
+    { method: "GET" },
+    "No se pudo cargar la bitácora."
+  );
+  return page.items.map(normalizeDispatch);
 }
 
 /**
- * MAÑANA: POST /api/inventory/dispatch. El backend SOLO inserta; el trigger
- * `trg_dispatch_log_subtract_stock` valida y resta el stock. Si no alcanza,
- * FastAPI debe responder 409 con el mensaje de la BD.
+ * POST /api/inventory/dispatch (solo admin/aprobador).
+ * El backend inserta y el trigger `trg_dispatch_log_subtract_stock` valida y
+ * resta el stock. Si no alcanza responde 409 con un mensaje claro.
  */
 export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
-  await delay();
-  const item = getStockSnapshot().find((s) => s.supplier_item_id === input.id_raw_materials_suppliers);
-  const project = MOCK_PROJECTS.find((p) => p.id === input.id_project);
-  if (!item || !project) throw new Error("Material o proyecto no válido.");
+  const created = await fetchJson<RawDispatch>(
+    "/api/inventory/dispatch",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo registrar el despacho."
+  );
 
-  if (item.current_stock < input.use_raw_materials) {
-    throw new Error(
-      `Stock insuficiente. Disponible: ${item.current_stock} ${item.unit}, solicitado: ${input.use_raw_materials} ${item.unit}.`,
-    );
-  }
-  mockAdjustStock(item.supplier_item_id, -input.use_raw_materials); // simula el trigger
-
-  const dispatch: Dispatch = {
-    id: crypto.randomUUID(),
-    supplier_item: { id: item.supplier_item_id, resource_name: item.resource_name, vendor_name: item.vendor_name, unit: item.unit },
-    project: { id: project.id, unique_code: project.unique_code, name: project.name },
-    user: { id: "me", full_name: "Usuario actual" }, // el backend lo toma del token
-    use_raw_materials: input.use_raw_materials,
-    material_requested_at: new Date().toISOString(),
-    notes: input.notes,
-  };
-  dispatches = [...dispatches, dispatch];
+  const dispatch = normalizeDispatch(created);
   void mutate(DISPATCH_KEY);
+  void mutate(STOCK_KEY);
   auditUiEvent({
     entity: "Dispatch",
     action: "dispatch",
-    summary: `${input.use_raw_materials} ${item.unit} de ${item.resource_name} a ${project.unique_code}`,
+    summary: `${dispatch.use_raw_materials} ${dispatch.supplier_item.unit} de ${dispatch.supplier_item.resource_name} a ${dispatch.project.unique_code}`,
   });
   return dispatch;
 }
 
-/** Solo para el MOCK: lo usa el prorrateo para calcular consumos. */
+/* ------------------------------------------------------------------------- */
+/* Fallback SOLO para el prorrateo (aún mock), que calcula consumos demo.     */
+/* ------------------------------------------------------------------------- */
+
+const dispatches: Dispatch[] = [...MOCK_DISPATCH];
+
+/** Foto demo de despachos; NO refleja la bitácora real del backend. */
 export const getDispatchSnapshot = (): Dispatch[] => dispatches;

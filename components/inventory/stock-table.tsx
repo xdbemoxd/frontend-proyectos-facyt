@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, Search } from "lucide-react";
-import { useStock } from "@/lib/inventory/use-stock";
-import { RESOURCE_TYPES } from "@/lib/inventory/mock";
+import { useInventoryCatalogs, useStock } from "@/lib/inventory/use-stock";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
 import { StockBadge } from "./stock-badge";
@@ -11,8 +10,9 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
 
-export function StockTable() {
+export function StockTable({ canEdit = false }: { canEdit?: boolean }) {
   const { data, error, isLoading, mutate } = useStock();
+  const { data: catalogs } = useInventoryCatalogs();
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [onlyCritical, setOnlyCritical] = useState(false);
@@ -30,6 +30,7 @@ export function StockTable() {
   }
 
   const items = data ?? [];
+  const types = catalogs?.resource_types ?? [];
   const critical = items.filter((i) => i.is_critical);
   const q = query.trim().toLowerCase();
   const rows = items.filter(
@@ -69,7 +70,7 @@ export function StockTable() {
           <select value={type} onChange={(e) => setType(e.target.value)}
             className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <option value="">Todos los tipos</option>
-            {RESOURCE_TYPES.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+            {types.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
           </select>
         </label>
       </div>
@@ -107,7 +108,11 @@ export function StockTable() {
                   </td>
                   <td className="px-4 py-3"><StockBadge status={i.stock_status} /></td>
                   <td className="px-4 py-3 text-right">
-                    <EditLink href={`/dashboard/inventory/${i.supplier_item_id}/edit`} label={`${i.resource_name} (${i.vendor_name})`} />
+                    {canEdit ? (
+                      <EditLink href={`/dashboard/inventory/${i.supplier_item_id}/edit`} label={`${i.resource_name} (${i.vendor_name})`} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Solo lectura</span>
+                    )}
                   </td>
                 </tr>
               ))}

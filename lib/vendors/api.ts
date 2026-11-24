@@ -1,75 +1,90 @@
 import { mutate } from "swr";
 import { auditUiEvent } from "@/lib/audit/ui-event";
-import { MOCK_VENDORS } from "./mock";
+import { fetchJson } from "@/lib/http";
 import type { Vendor, VendorInput } from "./types";
 
-/** Clave de cache: con SWR sera la URL del endpoint. */
-export const VENDORS_KEY = "/vendors";
+/** Clave SWR del flujo principal: proveedores reales vía BFF. */
+export const VENDORS_KEY = "/api/vendors?limit=200";
 
-// Copia en memoria para que los "nuevos" proveedores se vean en el listado.
-let store: Vendor[] = [...MOCK_VENDORS];
+type Paginated<T> = { items: T[]; total: number; limit: number; offset: number };
 
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Fetcher con la firma de SWR: (key) => Promise<data>.
- * MAÑANA:
- *   const res = await fetch(`/api${key}`);
- *   if (!res.ok) throw new Error("No se pudieron cargar los proveedores");
- *   return res.json();
- */
-export async function vendorsFetcher(_key: string): Promise<Vendor[]> {
-  await delay();
-  return [...store].sort((a, b) => a.name.localeCompare(b.name, "es"));
+/** Fetcher SWR: lista paginada de proveedores reales. */
+export async function vendorsFetcher(key: string): Promise<Vendor[]> {
+  const page = await fetchJson<Paginated<Vendor>>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los proveedores."
+  );
+  return page.items;
 }
 
-/**
- * Crear proveedor.
- * MAÑANA:
- *   const res = await fetch("/api/vendors", {
- *     method: "POST",
- *     headers: { "Content-Type": "application/json" },
- *     body: JSON.stringify(input),
- *   });
- *   if (!res.ok) throw new Error("No se pudo guardar el proveedor");
- *   return res.json();
- */
+/** POST /api/vendors (solo admin/aprobador). */
 export async function createVendor(input: VendorInput): Promise<Vendor> {
-  await delay();
-  const exists = store.some((v) => v.name.toLowerCase() === input.name.toLowerCase());
-  if (exists) throw new Error("Ya existe un proveedor con ese nombre.");
+  const vendor = await fetchJson<Vendor>(
+    "/api/vendors",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo guardar el proveedor."
+  );
 
-  const now = new Date().toISOString();
-  const vendor: Vendor = { id: crypto.randomUUID(), ...input, create_at: now, updated_at: now };
-  store = [...store, vendor];
   void mutate(VENDORS_KEY);
-  auditUiEvent({ entity: "Vendor", action: "create", summary: input.name });
+  auditUiEvent({
+    entity: "Vendor",
+    action: "create",
+    summary: vendor.name,
+  });
   return vendor;
 }
 
-/** MAÑANA: fetch(`/api/vendors/${id}`) */
+/** GET /api/vendors/:id. null si no existe o el id no es válido. */
 export async function getVendor(id: string): Promise<Vendor | null> {
-  await delay(300);
-  return store.find((v) => v.id === id) ?? null;
+  let response: Response;
+  try {
+    response = await fetch(`/api/vendors/${encodeURIComponent(id)}`, {
+      method: "GET",
+    });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor.");
+  }
+
+  if (response.status === 404 || response.status === 422) return null;
+  if (response.status === 403)
+    throw new Error("No tienes permiso para ver este proveedor.");
+  if (!response.ok) throw new Error("No se pudo cargar el proveedor.");
+  return (await response.json()) as Vendor;
 }
 
 /**
- * Editar proveedor.
- * MAÑANA: PATCH /api/vendors/:id con { ...input, updated_at: expectedUpdatedAt }.
- * FastAPI responde 409 si el nombre ya existe o si updated_at no coincide
- * (otra persona lo modificó antes).
+ * PATCH /api/vendors/:id con `expected_updated_at` (bloqueo optimista).
+ * El backend responde 409 si el nombre ya existe o si otra persona cambió el
+ * registro mientras se editaba.
  */
-export async function updateVendor(id: string, input: VendorInput, expectedUpdatedAt: string): Promise<Vendor> {
-  await delay();
-  const current = store.find((v) => v.id === id);
-  if (!current) throw new Error("Proveedor no encontrado.");
-  if (current.updated_at !== expectedUpdatedAt) throw new Error("Otra persona modificó este registro mientras lo editabas. Recarga la página para ver los cambios.");
-  if (store.some((v) => v.id !== id && v.name.toLowerCase() === input.name.toLowerCase())) {
-    throw new Error("Ya existe un proveedor con ese nombre.");
-  }
-  const updated: Vendor = { ...current, ...input, updated_at: new Date().toISOString() };
-  store = store.map((v) => (v.id === id ? updated : v));
+export async function updateVendor(
+  id: string,
+  input: VendorInput,
+  expectedUpdatedAt: string
+): Promise<Vendor> {
+  const vendor = await fetchJson<Vendor>(
+    `/api/vendors/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input,
+        expected_updated_at: expectedUpdatedAt,
+      }),
+    },
+    "No se pudo guardar el proveedor."
+  );
+
   void mutate(VENDORS_KEY);
-  auditUiEvent({ entity: "Vendor", action: "update", summary: input.name });
-  return updated;
+  auditUiEvent({
+    entity: "Vendor",
+    action: "update",
+    summary: vendor.name,
+  });
+  return vendor;
 }

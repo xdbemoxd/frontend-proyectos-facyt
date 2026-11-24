@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { rawMaterialUpdateSchema, type RawMaterialUpdateErrors } from "@/lib/inventory/schema";
-import { getStockItem, hasStockMovements, updateRawMaterial } from "@/lib/inventory/api";
-import { RESOURCE_TYPES, UNITS } from "@/lib/inventory/mock";
+import { getStockItem, updateRawMaterial } from "@/lib/inventory/api";
+import { useInventoryCatalogs } from "@/lib/inventory/use-stock";
+import { UNITS } from "@/lib/inventory/mock";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, zodFieldErrors } from "@/components/forms/form-field";
 import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/record-loader";
@@ -15,14 +16,18 @@ const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
 export function RawMaterialEditForm({ id }: { id: string }) {
   const router = useRouter();
   const item = useRecord(getStockItem, id);
+  const { data: catalogs } = useInventoryCatalogs();
   const [errors, setErrors] = useState<RawMaterialUpdateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  if (!item) return <RecordStatus loading={item === undefined} notFound="Materia prima no encontrada." />;
+  const unitLocked = item?.has_movements === true;
+  const types = catalogs?.resource_types ?? [];
+  const typeId = item
+    ? (types.find((t) => t.name === item.resource_type)?.id ?? "")
+    : "";
 
-  const unitLocked = hasStockMovements(item.resource_id);
-  const typeId = RESOURCE_TYPES.find((t) => t.name === item.resource_type)?.id ?? "";
+  if (!item) return <RecordStatus loading={item === undefined} notFound="Materia prima no encontrada." />;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -60,8 +65,9 @@ export function RawMaterialEditForm({ id }: { id: string }) {
           defaultValue={item.resource_name} error={errors.name}
           hint="El cambio se aplica al material con todos sus proveedores." />
         <div className="grid gap-5 sm:grid-cols-2">
-          <SelectField id="rm-edit-type" name="resource_type_id" label="Tipo" required defaultValue={typeId}
-            options={RESOURCE_TYPES.map((t) => ({ value: t.id, label: t.name }))}
+          <SelectField id="rm-edit-type" name="resource_type_id" label="Tipo" required
+            key={`type-${typeId}`} defaultValue={typeId}
+            options={types.map((t) => ({ value: t.id, label: t.name }))}
             error={errors.resource_type_id} />
           <SelectField id="rm-edit-unit" name="unit" label="Unidad" required defaultValue={item.unit}
             disabled={unitLocked}

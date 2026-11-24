@@ -36,8 +36,15 @@ export function LotForm() {
     setFormError(null);
 
     const raw = Object.fromEntries(new FormData(e.currentTarget));
-    // La fecha viene como "YYYY-MM-DD": se toma a mediodia local para no cambiar de dia por la zona horaria.
-    if (typeof raw.in_date === "string" && raw.in_date) raw.in_date = `${raw.in_date}T12:00`;
+    // La fecha viene como "YYYY-MM-DD". Para fechas pasadas se toma a mediodía
+    // local (no cambia de día por la zona horaria). Si es hoy, se usa la hora
+    // actual: mediodía sería una fecha futura por la mañana y la API la rechaza.
+    if (typeof raw.in_date === "string" && raw.in_date) {
+      raw.in_date =
+        raw.in_date === todayLocal()
+          ? new Date().toISOString()
+          : `${raw.in_date}T12:00`;
+    }
 
     const parsed = lotSchema.safeParse(raw);
     if (!parsed.success) {
