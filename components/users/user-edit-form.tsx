@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { userUpdateSchema, type UserUpdateErrors } from "@/lib/users/schema";
-import { getUser, updateUser } from "@/lib/users/api";
-import { MOCK_ROLES, ROLE_LABELS } from "@/lib/users/mock";
-import { userState, type AppUser } from "@/lib/users/types";
+import { userState } from "@/lib/users/types";
+import { revalidateUsers, useUser } from "@/hooks/use-users";
+import { useRoles } from "@/hooks/use-roles";
+import { updateUserAction } from "@/actions/users.action";
 import { Button } from "@/components/ui/button";
 import { SelectField, zodFieldErrors } from "@/components/forms/form-field";
 import { UserStateBadge } from "./user-state-badge";
@@ -15,19 +16,24 @@ type Props = { id: string; currentUserEmail: string | null };
 
 export function UserEditForm({ id, currentUserEmail }: Props) {
   const router = useRouter();
-  const [user, setUser] = useState<AppUser | null | undefined>(undefined);
+  const { data: user, error, isLoading, mutate: reload } = useUser(id);
+  const { options, isLoading: loadingRoles, error: rolesError } = useRoles();
   const [errors, setErrors] = useState<UserUpdateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  useEffect(() => {
-    getUser(id).then(setUser);
-  }, [id]);
-
-  if (user === undefined) {
+  if (isLoading) {
     return <p className="mx-auto max-w-xl text-sm text-muted-foreground" aria-busy="true">Cargando usuario…</p>;
   }
-  if (user === null) {
+  if (error) {
+    return (
+      <div role="alert" className="mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border p-6 text-sm text-destructive">
+        <span>{error.message}</span>
+        <Button variant="outline" size="sm" onClick={() => reload()}>Reintentar</Button>
+      </div>
+    );
+  }
+  if (!user) {
     return (
       <p className="mx-auto max-w-xl rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
         Usuario no encontrado.
@@ -51,21 +57,30 @@ export function UserEditForm({ id, currentUserEmail }: Props) {
 
     setErrors({});
     setPending(true);
+    let result: Awaited<ReturnType<typeof updateUserAction>>;
     try {
-      await updateUser(user.id, parsed.data, currentUserEmail);
-      router.push("/dashboard/users");
-      router.refresh();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "No se pudo guardar el usuario.");
+      result = await updateUserAction(user.id, parsed.data);
+    } catch {
+      setFormError("No se pudo guardar. Recarga la página e inténtalo de nuevo.");
       setPending(false);
+      return;
     }
+    if (!result.ok) {
+      setFormError(result.error);
+      setPending(false);
+      return;
+    }
+    await Promise.all([revalidateUsers(), reload()]);
+    router.push("/dashboard/users");
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate aria-busy={pending}
       className="mx-auto flex w-full max-w-xl flex-col gap-5 rounded-xl border bg-card p-6 text-card-foreground">
-      {formError && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
+      {(formError || rolesError) && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {formError ?? rolesError?.message}
+        </p>
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -82,32 +97,36 @@ export function UserEditForm({ id, currentUserEmail }: Props) {
         </p>
       )}
 
-      <SelectField id="usr-edit-rol" name="id_rol" label="Rol" required defaultValue={user.rol.id}
-        disabled={isSelf}
-        options={MOCK_ROLES.map((r) => ({ value: r.id, label: ROLE_LABELS[r.name] ?? r.name }))}
+      {/* key: se vuelve a montar cuando llegan los roles para aplicar el valor actual */}
+      <SelectField key={`rol-${options.length}`} id="usr-edit-rol" name="id_rol" label="Rol" required
+        defaultValue={user.rol.id} disabled={isSelf || loadingRoles}
+        placeholder={loadingRoles ? "Cargando roles…" : undefined}
+        options={options}
         error={errors.id_rol} />
       {isSelf && <input type="hidden" name="id_rol" value={user.rol.id} />}
 
       <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="is_active" defaultChecked={user.is_active || pendingFirstLogin}
-          disabled={isSelf || pendingFirstLogin} className="mt-0.5 size-4 accent-primary" />
+        <input type="checkbox" name="is_active" defaultChecked={user.is_active}
+          disabled={isSelf} className="mt-0.5 size-4 accent-primary" />
         <span>
           <span className="font-medium">Cuenta activa</span>
           <span className="block text-xs text-muted-foreground">
             {pendingFirstLogin
-              ? "Se activa sola en el primer ingreso con Google."
+              ? "Aún no ha entrado. Si la desactivas, no podrá hacer su primer ingreso."
               : "Si la desactivas, no podrá iniciar sesión. Su historial se conserva."}
           </span>
         </span>
       </label>
-      {(isSelf || pendingFirstLogin) && <input type="hidden" name="is_active" value="true" />}
+      {isSelf && <input type="hidden" name="is_active" value="true" />}
 
       <div className="flex justify-end gap-3 border-t pt-5">
         <Link href="/dashboard/users"
           className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           Cancelar
         </Link>
-        <Button type="submit" disabled={pending || isSelf}>{pending ? "Guardando…" : "Guardar cambios"}</Button>
+        <Button type="submit" disabled={pending || isSelf || loadingRoles}>
+          {pending ? "Guardando…" : "Guardar cambios"}
+        </Button>
       </div>
     </form>
   );

@@ -1,5 +1,5 @@
-/** Rol (private.rol). */
-export type Role = { id: string; name: string; description: string | null };
+/** Rol: el tipo vive en lib/roles/types.ts. */
+export type { Role } from "@/lib/roles/types";
 
 /** Usuario (private.user) con su rol resuelto. */
 export type AppUser = {
@@ -8,8 +8,9 @@ export type AppUser = {
   name: string | null; // null hasta el primer ingreso con Google
   lastname: string | null;
   is_active: boolean;
-  rol: { id: string; name: string };
   create_at: string;
+  id_rol?: string;
+  rol: { id: string; name: string; description?: string | null };
 };
 
 /** Estado mostrado en la UI. */

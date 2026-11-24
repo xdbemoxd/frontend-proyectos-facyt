@@ -1,8 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserEditForm } from "@/components/users/user-edit-form";
 
-export const metadata = { title: "Editar usuario" };
+export const metadata: Metadata = { title: "Editar usuario" };
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

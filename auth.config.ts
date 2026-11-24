@@ -1,8 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-/** Debe coincidir con la expiracion del JWT de FastAPI (8 h). */
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
+/** Debe coincidir con JWT_ACCESS_TTL_MINUTES del backend (60 min). */
+export const SESSION_MAX_AGE_SECONDS = 60 * 60;
 
 /**
  * Config "edge-safe": la usa proxy.ts. No hace fetch al backend aqui;

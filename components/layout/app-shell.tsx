@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/auth";
+import { logoutBackend } from "@/services/auth.service";
 import { Header } from "./header";
 import { AppTopNav } from "./app-topnav";
 
@@ -20,6 +21,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   async function signOutAction() {
     "use server";
+    // Primero invalida el JWT en el backend; luego borra la cookie local.
+    await logoutBackend();
     await signOut({ redirectTo: "/" });
   }
 

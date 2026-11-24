@@ -1,20 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { useUsers } from "@/lib/users/use-users";
-import { MOCK_ROLES, ROLE_LABELS } from "@/lib/users/mock";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { useUsers } from "@/hooks/use-users";
+import { useRoles } from "@/hooks/use-roles";
+import { ROLE_LABELS } from "@/lib/users/mock";
 import { userState } from "@/lib/users/types";
 import { Button } from "@/components/ui/button";
 import { UserStateBadge } from "./user-state-badge";
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
+const PAGE_SIZE = 8;
+
 export function UsersTable() {
-  const { data, error, isLoading, mutate } = useUsers();
+  const { roles } = useRoles();
   const [query, setQuery] = useState("");
-  const [rol, setRol] = useState("");
+  const [search, setSearch] = useState(""); // query con debounce
+  const [rol, setRol] = useState(""); // id del rol
+  const [page, setPage] = useState(1);
+
+  // Espera 300 ms tras dejar de escribir para no pedir al backend en cada tecla.
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(query.trim()); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const { data, error, isLoading, mutate } = useUsers({
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+    search,
+    role_id: rol || undefined,
+  });
 
   if (isLoading && !data) {
     return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando usuarios…</p>;
@@ -22,17 +40,18 @@ export function UsersTable() {
   if (error) {
     return (
       <div className="py-6 text-sm text-destructive" role="alert">
-        No se pudieron cargar los usuarios.{" "}
+        {error.message}{" "}
         <Button variant="outline" size="sm" onClick={() => mutate()}>Reintentar</Button>
       </div>
     );
   }
 
-  const q = query.trim().toLowerCase();
-  const rows = (data ?? []).filter((u) => {
-    const fullName = `${u.name ?? ""} ${u.lastname ?? ""}`.toLowerCase();
-    return (!rol || u.rol.name === rol) && (!q || u.email.includes(q) || fullName.includes(q));
-  });
+  const q = search;
+  const total = data?.total ?? 0;
+  const pageRows = data?.items ?? [];
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const start = (current - 1) * PAGE_SIZE;
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,20 +65,21 @@ export function UsersTable() {
         </label>
         <label>
           <span className="sr-only">Filtrar por rol</span>
-          <select value={rol} onChange={(e) => setRol(e.target.value)}
+          <select value={rol} onChange={(e) => { setRol(e.target.value); setPage(1); }}
             className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <option value="">Todos los roles</option>
-            {MOCK_ROLES.map((r) => <option key={r.id} value={r.name}>{ROLE_LABELS[r.name] ?? r.name}</option>)}
+            {roles.map((r) => <option key={r.id} value={r.id}>{ROLE_LABELS[r.name] ?? r.name}</option>)}
           </select>
         </label>
       </div>
 
-      {rows.length === 0 ? (
+      {total === 0 ? (
         <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           {q || rol ? "Ningún usuario coincide con el filtro." : "No hay usuarios registrados."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
+        <div className="flex flex-col gap-3">
+          <div className="overflow-x-auto rounded-xl border">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">Usuarios del sistema</caption>
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
@@ -72,7 +92,7 @@ export function UsersTable() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((u) => (
+              {pageRows.map((u) => (
                 <tr key={u.id} className="border-t">
                   <td className="px-4 py-3">
                     <div className="font-medium">
@@ -91,8 +111,34 @@ export function UsersTable() {
                   </td>
                 </tr>
               ))}
+              {/* Filas vacías para que la tabla mida siempre PAGE_SIZE filas */}
+              {Array.from({ length: PAGE_SIZE - pageRows.length }, (_, k) => (
+                <tr key={`empty-${k}`} aria-hidden="true" className="border-t">
+                  <td colSpan={5} className="px-4 py-3">
+                    <div className="h-9" />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+          </div>
+          <nav aria-label="Paginación de usuarios"
+            className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <p className="text-muted-foreground" aria-live="polite">
+              Mostrando {start + 1}–{start + pageRows.length} de {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(current - 1)} disabled={current === 1}>
+                <ChevronLeft className="size-4" aria-hidden="true" />
+                Anterior
+              </Button>
+              <span className="tabular-nums">Página {current} de {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage(current + 1)} disabled={current === totalPages}>
+                Siguiente
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </nav>
         </div>
       )}
     </div>
