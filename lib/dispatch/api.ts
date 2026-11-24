@@ -1,4 +1,5 @@
 import { mutate } from "swr";
+import { auditUiEvent } from "@/lib/audit/ui-event";
 import { getStockSnapshot, mockAdjustStock } from "@/lib/inventory/api";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import type { Dispatch, DispatchInput } from "./types";
@@ -78,6 +79,11 @@ export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
   };
   dispatches = [...dispatches, dispatch];
   void mutate(DISPATCH_KEY);
+  auditUiEvent({
+    entity: "Dispatch",
+    action: "dispatch",
+    summary: `${input.use_raw_materials} ${item.unit} de ${item.resource_name} a ${project.unique_code}`,
+  });
   return dispatch;
 }
 

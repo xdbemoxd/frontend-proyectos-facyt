@@ -16,6 +16,7 @@ export const ACTION_LABELS: Record<string, string> = {
   update_role: "Cambió el rol",
   deactivate: "Desactivó la cuenta",
   http_request: "Petición HTTP",
+  page_view: "Acceso a página",
   create_user: "Creó usuario",
   update_user: "Editó usuario",
   create_user_denied: "Intento de crear usuario",
@@ -38,6 +39,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   Expense: "Solicitud de gasto",
   OverheadPeriod: "Período de prorrateo",
   Session: "Sesión",
+  Navigation: "Navegación",
   HTTP: "Petición HTTP",
   Test: "Prueba",
 };
@@ -58,6 +60,9 @@ export const FIELD_LABELS: Record<string, string> = {
   contact_phone: "Teléfono",
   progress: "Avance",
   budget_execution: "Ejecución presupuestaria",
+  summary: "Resumen",
+  source: "Origen",
+  role: "Rol del actor",
 };
 
 export const OUTCOME_LABELS = { success: "Éxito", denied: "Denegado", failed: "Fallido" } as const;

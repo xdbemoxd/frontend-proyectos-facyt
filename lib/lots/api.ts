@@ -1,4 +1,5 @@
 import { mutate } from "swr";
+import { auditUiEvent } from "@/lib/audit/ui-event";
 import { getStockSnapshot, mockAdjustStock } from "@/lib/inventory/api";
 import type { Lot, LotInput } from "./types";
 
@@ -75,5 +76,6 @@ export async function createLot(input: LotInput): Promise<Lot> {
   };
   lots = [...lots, lot];
   void mutate(LOTS_KEY);
+  auditUiEvent({ entity: "Lot", action: "register_lot", summary: `Lote de ${item.resource_name}` });
   return lot;
 }

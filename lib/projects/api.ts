@@ -1,4 +1,5 @@
 import { mutate } from "swr";
+import { auditUiEvent } from "@/lib/audit/ui-event";
 import { MOCK_PROJECTS, PRIORITY, STATUS } from "./mock";
 import type { Project, PriorityChange, PriorityChangeInput, ProjectUpdateInput } from "./types";
 
@@ -69,6 +70,11 @@ export async function changeProjectPriority(input: PriorityChangeInput): Promise
   ];
   void mutate(PROJECTS_KEY);
   void mutate(PRIORITY_LOG_KEY);
+  auditUiEvent({
+    entity: "Project",
+    action: "update_priority",
+    summary: `${project.unique_code}: ${project.priority.name} → ${priority.name}`,
+  });
   return updated;
 }
 
@@ -99,5 +105,6 @@ export async function updateProject(id: string, input: ProjectUpdateInput, expec
   };
   projects = projects.map((p) => (p.id === id ? updated : p));
   void mutate(PROJECTS_KEY);
+  auditUiEvent({ entity: "Project", action: "update", summary: input.name });
   return updated;
 }

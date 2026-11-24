@@ -1,4 +1,5 @@
 import { mutate } from "swr";
+import { auditUiEvent } from "@/lib/audit/ui-event";
 import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { MOCK_VENDORS } from "@/lib/vendors/mock";
 import { EQUIPMENT_STATUS, MOCK_RESERVATIONS, MOCK_UNITS } from "./mock";
@@ -47,6 +48,7 @@ export async function createEquipment(input: EquipmentInput): Promise<EquipmentU
   };
   units = [...units, unit];
   void mutate(EQUIPMENT_KEY);
+  auditUiEvent({ entity: "Equipment", action: "create", summary: input.name });
   return unit;
 }
 
@@ -94,6 +96,11 @@ export async function createReservation(input: ReservationInput): Promise<Reserv
   };
   reservations = [...reservations, reservation];
   void mutate(RESERVATIONS_KEY);
+  auditUiEvent({
+    entity: "Reservation",
+    action: "reserve",
+    summary: `${unit.equipment.name} para ${project.unique_code}`,
+  });
   return reservation;
 }
 
@@ -142,5 +149,6 @@ export async function updateEquipment(id: string, input: EquipmentUpdateInput, e
     return u.equipment.id === unit.equipment.id ? { ...u, equipment } : u;
   });
   void mutate(EQUIPMENT_KEY);
+  auditUiEvent({ entity: "Equipment", action: "update", summary: input.name });
   return units.find((u) => u.id === id)!;
 }

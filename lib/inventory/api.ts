@@ -1,4 +1,5 @@
 import { mutate } from "swr";
+import { auditUiEvent } from "@/lib/audit/ui-event";
 import { MOCK_VENDORS } from "@/lib/vendors/mock";
 import { MOCK_STOCK, RESOURCE_TYPES } from "./mock";
 import type { RawMaterialInput, RawMaterialUpdateInput, StockItem } from "./types";
@@ -57,6 +58,7 @@ export async function createRawMaterial(input: RawMaterialInput): Promise<StockI
   };
   store = [...store, item];
   void mutate(STOCK_KEY);
+  auditUiEvent({ entity: "RawMaterial", action: "create", summary: input.name });
   return item;
 }
 
@@ -116,5 +118,6 @@ export async function updateRawMaterial(supplierItemId: string, input: RawMateri
       : base;
   });
   void mutate(STOCK_KEY);
+  auditUiEvent({ entity: "RawMaterial", action: "update", summary: input.name });
   return store.find((s) => s.supplier_item_id === supplierItemId)!;
 }

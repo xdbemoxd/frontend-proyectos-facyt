@@ -1,5 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { logoutBackend } from "@/services/auth.service";
+import { PageViewAudit } from "@/components/audit/page-view-audit";
 import { Header } from "./header";
 import { AppTopNav } from "./app-topnav";
 
@@ -28,6 +29,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PageViewAudit />
       <AppTopNav
         user={{
           name: session.user.name ?? session.user.email ?? "Usuario",
