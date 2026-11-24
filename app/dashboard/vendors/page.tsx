@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { requireRole } from "@/components/auth/require-role";
 import { VendorsTable } from "@/components/vendors/vendors-table";
 import { SectionArt } from "@/components/decor/section-art";
+import { ADMIN_OR_APPROVER } from "@/lib/auth/roles";
 
 export const metadata = { title: "Proveedores" };
 
-export default function VendorsPage() {
+export default async function VendorsPage() {
+  await requireRole(ADMIN_OR_APPROVER);
   return (
     <main className="relative overflow-hidden p-6">
       <SectionArt variant="vendors" />

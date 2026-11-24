@@ -1,10 +1,13 @@
+import { requireRole } from "@/components/auth/require-role";
 import { PageHeader } from "@/components/layout/page-header";
 import { LotsTable } from "@/components/lots/lots-table";
 import { SectionArt } from "@/components/decor/section-art";
+import { ADMIN_OR_APPROVER } from "@/lib/auth/roles";
 
 export const metadata = { title: "Lotes de compra" };
 
-export default function LotsPage() {
+export default async function LotsPage() {
+  await requireRole(ADMIN_OR_APPROVER);
   return (
     <main className="relative overflow-hidden p-6">
       <SectionArt variant="lots" />

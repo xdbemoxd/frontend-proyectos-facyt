@@ -15,7 +15,18 @@ type UnauthorizedPageProps = {
  */
 export default async function UnauthorizedPage({ searchParams }: UnauthorizedPageProps) {
   const { error } = await searchParams;
+  const isRoleDenied = error === "RoleNotAllowed";
   const isAccessDenied = !error || error === "AccessDenied";
+  const title = isRoleDenied
+    ? "Acceso no autorizado"
+    : isAccessDenied
+      ? "Error: correo no registrado"
+      : "No pudimos iniciar sesión";
+  const message = isRoleDenied
+    ? "Tu rol no tiene permisos para acceder a esta sección. Si crees que es un error, contacta al administrador del sistema."
+    : isAccessDenied
+      ? "Comuníquese con el gestor del sistema para más información."
+      : "Ocurrió un problema al iniciar sesión. Intente de nuevo en unos minutos.";
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background p-6">
@@ -29,13 +40,11 @@ export default async function UnauthorizedPage({ searchParams }: UnauthorizedPag
         </div>
 
         <h1 id="unauthorized-title" className="font-heading text-xl font-semibold">
-          {isAccessDenied ? "Error: correo no registrado" : "No pudimos iniciar sesión"}
+          {title}
         </h1>
 
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {isAccessDenied
-            ? "Comuníquese con el gestor del sistema para más información."
-            : "Ocurrió un problema al iniciar sesión. Intente de nuevo en unos minutos."}
+          {message}
         </p>
 
         <div className="mt-8 flex flex-col gap-3">

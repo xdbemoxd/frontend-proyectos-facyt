@@ -15,15 +15,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-/** Roles del enunciado (deben coincidir con `rol.name` del backend). */
-export type Role = "admin_sistema" | "coordinador" | "aprobador";
+import { ADMIN_ONLY, ADMIN_OR_APPROVER, isRoleAllowed, type Role } from "@/lib/auth/roles";
+
+export { ROLE_LABELS, normalizeRole, type Role } from "@/lib/auth/roles";
 
 export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
   /** Si se omite, lo ven todos. `[]` = solo admin_sistema. admin_sistema siempre lo ve. */
-  roles?: Role[];
+  roles?: readonly Role[];
 };
 
 /**
@@ -45,7 +46,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       label: "Priorización",
       href: "/dashboard/priority",
       icon: ListOrdered,
-      roles: ["aprobador"],
+      roles: ADMIN_OR_APPROVER,
     },
   },
   {
@@ -54,8 +55,8 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: "Materias primas", href: "/dashboard/inventory", icon: Boxes },
       { label: "Asignación de materias primas", href: "/dashboard/inventory/dispatch", icon: PackageMinus },
-      { label: "Lotes de compra", href: "/dashboard/inventory/lots", icon: PackagePlus, roles: ["aprobador"] },
-      { label: "Proveedores", href: "/dashboard/vendors", icon: Truck, roles: ["aprobador"] },
+      { label: "Lotes de compra", href: "/dashboard/inventory/lots", icon: PackagePlus, roles: ADMIN_OR_APPROVER },
+      { label: "Proveedores", href: "/dashboard/vendors", icon: Truck, roles: ADMIN_OR_APPROVER },
     ],
   },
   {
@@ -71,7 +72,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     title: "Finanzas",
     items: [
       { label: "Solicitudes de gasto", href: "/dashboard/expenses", icon: Receipt },
-      { label: "Prorrateo", href: "/dashboard/overhead", icon: Scale, roles: ["aprobador"] },
+      { label: "Prorrateo", href: "/dashboard/overhead", icon: Scale, roles: ADMIN_OR_APPROVER },
     ],
   },
   {
@@ -79,37 +80,24 @@ export const NAV_ENTRIES: NavEntry[] = [
     title: "Reportes",
     items: [
       { label: "Reportes", href: "/dashboard/reports", icon: FileText },
-      { label: "Auditoría", href: "/dashboard/audit", icon: ShieldCheck, roles: [] },
+      { label: "Auditoría", href: "/dashboard/audit", icon: ShieldCheck, roles: ADMIN_ONLY },
     ],
   },
   {
     type: "section",
     title: "Administración",
-    items: [{ label: "Usuarios", href: "/dashboard/users", icon: Users, roles: [] }],
+    items: [{ label: "Usuarios", href: "/dashboard/users", icon: Users, roles: ADMIN_ONLY }],
   },
 ];
 
 /**
- * Convierte el nombre de rol que manda el backend al codigo del front.
- * Acepta variantes: "Administrador", "admin", "Aprobador / Gestor", etc.
+ * Indica si el rol puede ver la opcion de menu.
+ * - `roles` omitido: cualquier usuario autenticado.
+ * - `roles: ADMIN_ONLY` (`[]`): solo administrador.
+ * - En cualquier caso, el administrador ve todo.
  */
-export function normalizeRole(rol: string | null | undefined): Role | null {
-  if (!rol) return null;
-  const r = rol.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  if (r.startsWith("admin")) return "admin_sistema";
-  if (r.startsWith("aprob") || r.includes("gestor")) return "aprobador";
-  if (r.startsWith("coord")) return "coordinador";
-  return null;
-}
-
-/**
- * ACCESO COMPLETO: por ahora todos ven todo el menu.
- * Cuando el backend envie el menu (segun el rol del usuario), el filtrado
- * lo hara FastAPI y esta funcion ya no sera necesaria. Los permisos reales
- * siempre se validan en el backend.
- */
-export function canSee(_item: NavItem, _rol: string | null): boolean {
-  return true;
+export function canSee(item: NavItem, rol: string | null): boolean {
+  return isRoleAllowed(item.roles, rol);
 }
 
 /** Filtra el menu segun el rol (quita secciones que quedan vacias). */
@@ -120,9 +108,3 @@ export function visibleEntries(rol: string | null): NavEntry[] {
     return items.length ? [{ ...entry, items }] : [];
   });
 }
-
-export const ROLE_LABELS: Record<string, string> = {
-  admin_sistema: "Administrador del sistema",
-  coordinador: "Coordinador de proyecto",
-  aprobador: "Aprobador / Gestor de inventario",
-};
