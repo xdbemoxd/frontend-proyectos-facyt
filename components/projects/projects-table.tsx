@@ -7,24 +7,26 @@ import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
 
 const STATUS_STYLES: Record<string, string> = {
-  Propuesta: "bg-slate-100 text-slate-700",
-  "En ejecución": "bg-blue-100 text-blue-700",
-  Suspendido: "bg-amber-100 text-amber-800",
-  Finalizado: "bg-green-100 text-green-700",
+  Propuesta: "bg-slate-500/10 text-slate-600 dark:bg-slate-400/10 dark:text-slate-300",
+  "En ejecución": "bg-blue-500/10 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300",
+  Suspendido: "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300",
+  Finalizado: "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300",
 };
 
 const PRIORITY_STYLES: Record<string, string> = {
-  Crítica: "bg-red-100 text-red-700",
-  Alta: "bg-orange-100 text-orange-700",
-  Media: "bg-yellow-100 text-yellow-800",
-  Baja: "bg-gray-100 text-gray-700",
+  Crítica: "bg-red-500/10 text-red-700 dark:bg-red-400/10 dark:text-red-300",
+  Alta: "bg-orange-500/10 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300",
+  Media: "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-400/10 dark:text-yellow-300",
+  Baja: "bg-muted text-muted-foreground",
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
 function Badge({ label, styles }: { label: string; styles: Record<string, string> }) {
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${styles[label] ?? "bg-gray-100"}`}>
+    <span
+      className={`inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-center text-xs font-medium ${styles[label] ?? "bg-muted text-muted-foreground"}`}
+    >
       {label}
     </span>
   );
@@ -98,7 +100,7 @@ export function ProjectsTable() {
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">Listado de proyectos</caption>
-        <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
           <tr>
             <th scope="col" className="px-3 py-2">Código</th>
             <th scope="col" className="px-3 py-2">Proyecto</th>

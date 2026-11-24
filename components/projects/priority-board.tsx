@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 const PRIORITY_STYLES: Record<string, string> = {
-  Crítica: "bg-red-500/15 text-red-700 dark:text-red-400",
-  Alta: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-  Media: "bg-yellow-500/15 text-yellow-800 dark:text-yellow-400",
+  Crítica: "bg-red-500/10 text-red-700 dark:bg-red-400/10 dark:text-red-300",
+  Alta: "bg-orange-500/10 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300",
+  Media: "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-400/10 dark:text-yellow-300",
   Baja: "bg-muted text-muted-foreground",
 };
 
@@ -22,7 +22,7 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", time
 
 function PriorityBadge({ name }: { name: string }) {
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_STYLES[name] ?? "bg-muted"}`}>
+    <span className={`inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-center text-xs font-medium ${PRIORITY_STYLES[name] ?? "bg-muted text-muted-foreground"}`}>
       {name}
     </span>
   );
