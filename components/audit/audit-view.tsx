@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Activity, ChevronLeft, ChevronRight, Lock, ShieldAlert, XCircle } from "lucide-react";
 import { useAudit, useAuditUsers } from "@/lib/audit/use-audit";
-import { ENTITY_LABELS, OUTCOME_LABELS, actionLabel, entityLabel } from "@/lib/audit/labels";
+import { ENTITY_LABELS, OUTCOME_LABELS, entityLabel } from "@/lib/audit/labels";
 import type { AuditEntry, AuditFilters, AuditUser, Outcome } from "@/lib/audit/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,7 +12,7 @@ import { OutcomeBadge } from "./outcome-badge";
 import { HttpStatusBadge } from "./http-status-badge";
 import { AuditDetail } from "./audit-detail";
 
-const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" });
+const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "short", timeStyle: "short" });
 
 function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -154,24 +154,22 @@ export function AuditView() {
               </div>
             </div>
           )}
-          <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1230px] table-fixed text-left text-sm">
             <caption className="sr-only">Registro de auditoría. Selecciona una fila para ver el detalle.</caption>
             <colgroup>
-              <col className="w-[12%]" />
-              <col className="w-[11%]" />
-              <col className="w-[12%]" />
-              <col className="w-[20%]" />
-              <col className="w-[7%]" />
-              <col className="w-[16%]" />
-              <col className="w-[10%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
+              <col className="w-[170px]" />
+              <col className="w-[150px]" />
+              <col className="w-[240px]" />
+              <col className="w-[100px]" />
+              <col className="w-[180px]" />
+              <col className="w-[170px]" />
+              <col className="w-[110px]" />
+              <col className="w-[110px]" />
             </colgroup>
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
               <tr>
                 <th scope="col" className="px-4 py-3">Fecha y hora</th>
                 <th scope="col" className="px-4 py-3">Usuario</th>
-                <th scope="col" className="px-4 py-3">Acción</th>
                 <th scope="col" className="px-4 py-3">Petición</th>
                 <th scope="col" className="px-4 py-3">Código HTTP</th>
                 <th scope="col" className="px-4 py-3">User-Agent</th>
@@ -183,7 +181,7 @@ export function AuditView() {
             <tbody>
               {data.items.map((e) => (
                 <tr key={e.id} className="cursor-pointer border-t hover:bg-accent/50" onClick={() => setSelected(e)}>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     <button type="button" onClick={(ev) => { ev.stopPropagation(); setSelected(e); }}
                       className="text-left underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">
                       {dateTimeFmt.format(new Date(e.timestamp))}
@@ -196,7 +194,6 @@ export function AuditView() {
                       <span className="text-muted-foreground">Usuario eliminado</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{actionLabel(e.action)}</td>
                   <td className="px-4 py-3 font-mono text-xs">
                     {e.method || e.path ? (
                       <span className="block truncate" title={`${e.method ?? ""} ${e.path ?? ""}`.trim()}>
