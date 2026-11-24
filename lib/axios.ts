@@ -7,8 +7,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Opcional: Puedes agregar un timeout para que la petición no se quede colgada infinito si FastAPI está apagado
-  timeout: 10000, 
+  // El login incluye verificacion de Google + BD; 10s era muy corto.
+  timeout: 30000, 
 });
 
 

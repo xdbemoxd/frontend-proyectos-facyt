@@ -15,6 +15,15 @@ export const ACTION_LABELS: Record<string, string> = {
   reserve: "Reservó un equipo",
   update_role: "Cambió el rol",
   deactivate: "Desactivó la cuenta",
+  http_request: "Petición HTTP",
+  create_user: "Creó usuario",
+  update_user: "Editó usuario",
+  create_user_denied: "Intento de crear usuario",
+  update_user_denied: "Intento de editar usuario",
+  rbac_denied: "Acceso denegado",
+  logout: "Cerró sesión",
+  bootstrap_create: "Creó usuario (bootstrap)",
+  test_business_event: "Evento de prueba",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -29,6 +38,8 @@ export const ENTITY_LABELS: Record<string, string> = {
   Expense: "Solicitud de gasto",
   OverheadPeriod: "Período de prorrateo",
   Session: "Sesión",
+  HTTP: "Petición HTTP",
+  Test: "Prueba",
 };
 
 /** Nombres de campos para el detalle antes/despues. */

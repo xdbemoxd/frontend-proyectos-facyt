@@ -14,6 +14,8 @@ export const authConfig = {
     error: "/unauthorized", // ?error=AccessDenied cuando FastAPI rechaza
   },
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
+  // Secure solo en produccion (HTTPS). En localhost HTTP no se envia.
+  useSecureCookies: process.env.NODE_ENV === "production",
   providers: [
     Google({
       authorization: { params: { prompt: "select_account" } },

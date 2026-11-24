@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useUsers } from "@/hooks/use-users";
 import { useRoles } from "@/hooks/use-roles";
-import { ROLE_LABELS } from "@/lib/users/mock";
+import { roleLabel } from "@/lib/users/labels";
 import { userState } from "@/lib/users/types";
 import { Button } from "@/components/ui/button";
 import { UserStateBadge } from "./user-state-badge";
@@ -68,7 +68,7 @@ export function UsersTable() {
           <select value={rol} onChange={(e) => { setRol(e.target.value); setPage(1); }}
             className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <option value="">Todos los roles</option>
-            {roles.map((r) => <option key={r.id} value={r.id}>{ROLE_LABELS[r.name] ?? r.name}</option>)}
+            {roles.map((r) => <option key={r.id} value={r.id}>{roleLabel(r.name)}</option>)}
           </select>
         </label>
       </div>
@@ -100,7 +100,7 @@ export function UsersTable() {
                     </div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3">{ROLE_LABELS[u.rol.name] ?? u.rol.name}</td>
+                  <td className="px-4 py-3">{roleLabel(u.rol.name)}</td>
                   <td className="px-4 py-3"><UserStateBadge state={userState(u)} /></td>
                   <td className="px-4 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(u.create_at))}</td>
                   <td className="px-4 py-3 text-right">

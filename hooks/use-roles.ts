@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { getRoles } from "@/services/roles.service";
-import { ROLE_LABELS } from "@/lib/users/mock";
+import { roleLabel } from "@/lib/users/labels";
 import type { Role, RoleOption } from "@/lib/roles/types";
 
 export const ROLES_KEY = "roles";
@@ -19,7 +19,7 @@ export function useRoles() {
 
   const options: RoleOption[] = (swr.data ?? []).map((r) => ({
     value: r.id,
-    label: `${ROLE_LABELS[r.name] ?? r.name}${r.description ? ` — ${r.description}` : ""}`,
+    label: `${roleLabel(r.name)}${r.description ? ` — ${r.description}` : ""}`,
   }));
 
   return { ...swr, roles: swr.data ?? [], options };

@@ -1,23 +1,44 @@
 export type Outcome = "success" | "denied" | "failed";
 
-/** Fila de private.audit_log con el usuario resuelto (null si fue eliminado). */
-export type AuditEntry = {
+export type AuditUser = {
   id: string;
-  timestamp: string; // ISO
-  user: { id: string; full_name: string; email: string } | null;
-  ip_address: string;
-  entity: string; // p. ej. "Project"
-  action: string; // p. ej. "update_priority"
-  entity_id: string | null;
-  entity_label: string | null; // texto legible (codigo, nombre…), lo arma el backend
-  outcome: Outcome;
-  before_str: string | null; // JSON
-  after_str: string | null; // JSON
+  full_name: string;
+  email: string;
 };
 
-/** Filtros = query params de GET /audit. */
+/** Fila de private.audit_log con el usuario resuelto. */
+export type AuditEntry = {
+  id: string;
+  timestamp: string;
+  user: AuditUser | null;
+  user_id: string | null;
+  user_email: string | null;
+  ip_address: string;
+  entity: string;
+  action: string;
+  entity_id: string | null;
+  entity_label: string | null;
+  outcome: Outcome;
+
+  // Metadata HTTP
+  request_id: string | null;
+  method: string | null;
+  path: string | null;
+  status_code: number | null;
+  user_agent: string | null;
+  duration_ms: number | null;
+  request_headers: Record<string, string> | null;
+  query_params: Record<string, string> | null;
+  error_code: string | null;
+  error_detail: string | null;
+
+  // Snapshots serializados para el diff
+  before_str: string | null;
+  after_str: string | null;
+};
+
 export type AuditFilters = {
-  from: string; // YYYY-MM-DD
+  from: string;
   to: string;
   user_id?: string;
   entity?: string;
@@ -25,11 +46,10 @@ export type AuditFilters = {
   page: number;
 };
 
-/** Respuesta paginada de GET /audit. */
 export type AuditPage = {
   items: AuditEntry[];
   total: number;
   page: number;
   page_size: number;
-  counts: Record<Outcome, number>; // totales del rango (sin paginar)
+  counts: Record<Outcome, number>;
 };

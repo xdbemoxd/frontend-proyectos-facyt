@@ -11,7 +11,7 @@ import type { Role } from "@/lib/roles/types";
 export async function getRoles(): Promise<Role[]> {
   let res: Response;
   try {
-    res = await backendFetch("/user/roles");
+    res = await backendFetch("/api/user/roles");
   } catch {
     throw new Error("No se pudo conectar con el servidor.");
   }

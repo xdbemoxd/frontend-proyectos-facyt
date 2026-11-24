@@ -32,7 +32,7 @@ const NETWORK_ERROR = { ok: false as const, status: 0, error: "No se pudo conect
 /** POST /api/user con solo { email, id_rol }. El backend responde 201 y envía los correos. */
 export async function postUser(input: UserCreateInput): Promise<ServiceResult<null>> {
   try {
-    const res = await backendFetch("/user", {
+    const res = await backendFetch("/api/user", {
       method: "POST",
       body: JSON.stringify({ email: input.email, id_rol: input.id_rol }),
     });
@@ -73,7 +73,7 @@ export async function getUsers(query: UsersQuery): Promise<UsersPage> {
 
   let res: Response;
   try {
-    res = await backendFetch(`/user?${params}`);
+    res = await backendFetch(`/api/user?${params}`);
   } catch {
     throw new Error("No se pudo conectar con el servidor.");
   }
@@ -89,7 +89,7 @@ export async function getUsers(query: UsersQuery): Promise<UsersPage> {
 export async function getUserById(id: string): Promise<AppUser | null> {
   let res: Response;
   try {
-    res = await backendFetch(`/user/${encodeURIComponent(id)}`);
+    res = await backendFetch(`/api/user/${encodeURIComponent(id)}`);
   } catch {
     throw new Error("No se pudo conectar con el servidor.");
   }
@@ -103,7 +103,7 @@ export async function getUserById(id: string): Promise<AppUser | null> {
 /** PATCH /api/user/:id con solo { id_rol, is_active }. */
 export async function patchUser(id: string, input: UserUpdateInput): Promise<ServiceResult<AppUser>> {
   try {
-    const res = await backendFetch(`/user/${encodeURIComponent(id)}`, {
+    const res = await backendFetch(`/api/user/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify({ id_rol: input.id_rol, is_active: input.is_active }),
     });

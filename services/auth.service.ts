@@ -9,7 +9,7 @@ import { backendFetch } from "@/lib/backend";
  */
 export async function logoutBackend(): Promise<void> {
   try {
-    await backendFetch("/user/auth/logout", { method: "POST" });
+    await backendFetch("/api/user/auth/logout", { method: "POST" });
   } catch {
     /* sin sesión o sin conexión: igual se cierra la sesión en el frontend */
   }

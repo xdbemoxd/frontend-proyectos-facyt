@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { signOut } from '@/auth';
+import { backendFetch } from '@/lib/backend';
  
 export default function SideNav() {
   return (
@@ -9,6 +10,11 @@ export default function SideNav() {
         <form
           action={async () => {
             'use server';
+            try {
+              await backendFetch('/api/user/auth/logout', { method: 'POST' });
+            } catch {
+              // Token expirado o sesion ya cerrada.
+            }
             await signOut({ redirectTo: '/' });
           }}
         >
