@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { fetchJson } from "@/lib/http";
 import type {
   EquipmentCatalogs,
@@ -117,7 +116,6 @@ export async function createEquipment(
 
   const unit = normalizeEquipment(created);
   void mutate(EQUIPMENT_KEY);
-  auditUiEvent({ entity: "Equipment", action: "create", summary: unit.equipment.name });
   return unit;
 }
 
@@ -164,7 +162,6 @@ export async function updateEquipment(
 
   const unit = normalizeEquipment(updated);
   void mutate(EQUIPMENT_KEY);
-  auditUiEvent({ entity: "Equipment", action: "update", summary: unit.equipment.name });
   return unit;
 }
 
@@ -188,10 +185,5 @@ export async function createReservation(
   const reservation = normalizeReservation(created);
   void mutate(RESERVATIONS_KEY);
   void mutate(EQUIPMENT_KEY);
-  auditUiEvent({
-    entity: "Reservation",
-    action: "reserve",
-    summary: `${reservation.unit.equipment_name} para ${reservation.project.unique_code}`,
-  });
   return reservation;
 }

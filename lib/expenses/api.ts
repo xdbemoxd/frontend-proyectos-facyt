@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { fetchJson } from "@/lib/http";
 import { EXPENSE_STATUS } from "./constants";
 import type { Expense, ExpenseInput, ExpenseStatusCode } from "./types";
@@ -44,11 +43,6 @@ export async function createExpense(input: ExpenseInput): Promise<Expense> {
 
   const expense = normalizeExpense(created);
   void mutate(EXPENSES_KEY);
-  auditUiEvent({
-    entity: "Expense",
-    action: "create",
-    summary: `Solicitud para ${expense.project.unique_code}`,
-  });
   return expense;
 }
 
@@ -72,10 +66,5 @@ export async function changeExpenseStatus(
 
   const expense = normalizeExpense(updated);
   void mutate(EXPENSES_KEY);
-  auditUiEvent({
-    entity: "Expense",
-    action: "update_status",
-    summary: `${expense.description.slice(0, 120)} → ${expense.status.name || EXPENSE_STATUS[to].name}`,
-  });
   return expense;
 }

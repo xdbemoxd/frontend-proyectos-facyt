@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { STOCK_KEY } from "@/lib/inventory/api";
 import { fetchJson } from "@/lib/http";
 import type { Lot, LotInput } from "./types";
@@ -51,10 +50,5 @@ export async function createLot(input: LotInput): Promise<Lot> {
   const lot = normalizeLot(created);
   void mutate(LOTS_KEY);
   void mutate(STOCK_KEY);
-  auditUiEvent({
-    entity: "Lot",
-    action: "register_lot",
-    summary: `Lote de ${lot.supplier_item.resource_name}`,
-  });
   return lot;
 }

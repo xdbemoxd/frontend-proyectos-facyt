@@ -1,5 +1,4 @@
 import { mutate } from "swr"
-import { auditUiEvent } from "@/lib/audit/ui-event"
 import type {
   Catalog,
   PriorityChange,
@@ -182,11 +181,6 @@ export async function changeProjectPriority(
   const project = normalizeProject(updated)
   void mutate(PROJECTS_KEY)
   void mutate(PRIORITY_LOG_KEY)
-  auditUiEvent({
-    entity: "Project",
-    action: "update_priority",
-    summary: `${project.unique_code}: prioridad ${project.priority.name}`,
-  })
   return project
 }
 
@@ -237,6 +231,5 @@ export async function updateProject(
 
   const project = normalizeProject(updated)
   void mutate(PROJECTS_KEY)
-  auditUiEvent({ entity: "Project", action: "update", summary: project.name })
   return project
 }

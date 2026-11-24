@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { STOCK_KEY } from "@/lib/inventory/api";
 import { fetchJson } from "@/lib/http";
 import { MOCK_DISPATCH } from "./mock";
@@ -50,11 +49,6 @@ export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
   const dispatch = normalizeDispatch(created);
   void mutate(DISPATCH_KEY);
   void mutate(STOCK_KEY);
-  auditUiEvent({
-    entity: "Dispatch",
-    action: "dispatch",
-    summary: `${dispatch.use_raw_materials} ${dispatch.supplier_item.unit} de ${dispatch.supplier_item.resource_name} a ${dispatch.project.unique_code}`,
-  });
   return dispatch;
 }
 

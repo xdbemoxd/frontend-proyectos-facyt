@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { fetchJson } from "@/lib/http";
 import type { Vendor, VendorInput } from "./types";
 
@@ -31,11 +30,6 @@ export async function createVendor(input: VendorInput): Promise<Vendor> {
   );
 
   void mutate(VENDORS_KEY);
-  auditUiEvent({
-    entity: "Vendor",
-    action: "create",
-    summary: vendor.name,
-  });
   return vendor;
 }
 
@@ -81,10 +75,5 @@ export async function updateVendor(
   );
 
   void mutate(VENDORS_KEY);
-  auditUiEvent({
-    entity: "Vendor",
-    action: "update",
-    summary: vendor.name,
-  });
   return vendor;
 }

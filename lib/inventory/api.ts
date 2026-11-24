@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { fetchJson } from "@/lib/http";
 import { MOCK_STOCK } from "./mock";
 import type {
@@ -73,11 +72,6 @@ export async function createRawMaterial(
 
   const item = normalizeStock(created);
   void mutate(STOCK_KEY);
-  auditUiEvent({
-    entity: "RawMaterial",
-    action: "create",
-    summary: item.resource_name,
-  });
   return item;
 }
 
@@ -102,11 +96,6 @@ export async function updateRawMaterial(
 
   const item = normalizeStock(updated);
   void mutate(STOCK_KEY);
-  auditUiEvent({
-    entity: "RawMaterial",
-    action: "update",
-    summary: item.resource_name,
-  });
   return item;
 }
 

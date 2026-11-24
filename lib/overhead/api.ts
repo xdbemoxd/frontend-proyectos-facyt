@@ -1,5 +1,4 @@
 import { mutate } from "swr";
-import { auditUiEvent } from "@/lib/audit/ui-event";
 import { fetchJson } from "@/lib/http";
 import type {
   ClosePeriodInput,
@@ -127,10 +126,5 @@ export async function closePeriod(input: ClosePeriodInput): Promise<OverheadPeri
 
   const period = normalizePeriod(created);
   void mutate(OVERHEAD_KEY);
-  auditUiEvent({
-    entity: "OverheadPeriod",
-    action: "close_period",
-    summary: `Período ${period.start_date} a ${period.end_date}`,
-  });
   return period;
 }
