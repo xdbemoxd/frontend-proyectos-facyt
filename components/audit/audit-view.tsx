@@ -158,11 +158,11 @@ export function AuditView() {
             <caption className="sr-only">Registro de auditoría. Selecciona una fila para ver el detalle.</caption>
             <colgroup>
               <col className="w-[170px]" />
-              <col className="w-[150px]" />
-              <col className="w-[240px]" />
+              <col className="w-[130px]" />
+              <col className="w-[250px]" />
               <col className="w-[100px]" />
               <col className="w-[180px]" />
-              <col className="w-[170px]" />
+              <col className="w-[180px]" />
               <col className="w-[110px]" />
               <col className="w-[110px]" />
             </colgroup>
@@ -189,9 +189,9 @@ export function AuditView() {
                   </td>
                   <td className="px-4 py-3">
                     {e.user ? (
-                      <span className="block truncate" title={e.user.full_name}>{e.user.full_name}</span>
+                      <span className="block leading-tight break-words" title={e.user.full_name}>{e.user.full_name}</span>
                     ) : (
-                      <span className="text-muted-foreground">Usuario eliminado</span>
+                      <span className="text-muted-foreground leading-tight break-words">Usuario eliminado</span>
                     )}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">
