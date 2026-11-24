@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { equipmentUpdateSchema, type EquipmentUpdateErrors } from "@/lib/equipment/schema";
-import { getEquipment, updateEquipment, upcomingReservations } from "@/lib/equipment/api";
-import { EQUIPMENT_STATUS } from "@/lib/equipment/mock";
+import { getEquipment, updateEquipment } from "@/lib/equipment/api";
+import { useEquipmentCatalogs } from "@/lib/equipment/use-equipment";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/record-loader";
@@ -13,13 +13,15 @@ import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/recor
 export function EquipmentEditForm({ id }: { id: string }) {
   const router = useRouter();
   const unit = useRecord(getEquipment, id);
+  const { data: catalogs, isLoading: loadingCatalogs } = useEquipmentCatalogs();
   const [errors, setErrors] = useState<EquipmentUpdateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   if (!unit) return <RecordStatus loading={unit === undefined} notFound="Equipo no encontrado." />;
 
-  const pendingReservations = upcomingReservations(unit.id).length;
+  const pendingReservations = unit.pending_reservations ?? 0;
+  const statuses = catalogs?.statuses ?? [unit.status];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,13 +63,16 @@ export function EquipmentEditForm({ id }: { id: string }) {
         <InputField id="eq-edit-model" name="model" label="Modelo" maxLength={100}
           defaultValue={unit.model ?? ""} error={errors.model} />
         <InputField id="eq-edit-serial" name="serial_number" label="Número de serie" maxLength={100}
-          defaultValue={unit.serial_number ?? ""} error={errors.serial_number} />
+          defaultValue={unit.serial_number ?? ""} error={errors.serial_number}
+          hint="Debe ser único entre las unidades." />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <ReadOnlyField label="Proveedor" value={unit.vendor.name} />
-        <SelectField id="eq-edit-status" name="id_status" label="Estado" required defaultValue={unit.status.id}
-          options={EQUIPMENT_STATUS.map((s) => ({ value: s.id, label: s.name }))}
+        <SelectField key={statuses.map((s) => s.id).join("-")}
+          id="eq-edit-status" name="id_status" label="Estado" required
+          defaultValue={unit.status.id} disabled={loadingCatalogs}
+          options={statuses.map((s) => ({ value: s.id, label: s.name }))}
           error={errors.id_status}
           hint={pendingReservations > 0
             ? `Tiene ${pendingReservations} reserva(s) pendiente(s): no se puede pasar a mantenimiento.`

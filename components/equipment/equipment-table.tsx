@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { useEquipment } from "@/lib/equipment/use-equipment";
-import { EQUIPMENT_STATUS } from "@/lib/equipment/mock";
+import { useEquipment, useEquipmentCatalogs } from "@/lib/equipment/use-equipment";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
 import { EquipmentStatusBadge } from "./status-badge";
 import { LoadingState } from "@/components/ui/loading-state";
 
-export function EquipmentTable() {
+export function EquipmentTable({ canManage = false }: { canManage?: boolean }) {
   const { data, error, isLoading, mutate } = useEquipment();
+  const { data: catalogs } = useEquipmentCatalogs();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
 
@@ -27,6 +27,14 @@ export function EquipmentTable() {
   }
 
   const units = data ?? [];
+  // Catalogos reales del backend; si aun cargan, se derivan de las unidades.
+  const statuses =
+    catalogs?.statuses.length
+      ? catalogs.statuses
+      : Array.from(
+          new Map(units.map((u) => [u.status.id, u.status])).values(),
+        ).sort((a, b) => a.id - b.id);
+
   const q = query.trim().toLowerCase();
   const rows = units.filter(
     (u) =>
@@ -34,14 +42,15 @@ export function EquipmentTable() {
       (!q ||
         u.equipment.name.toLowerCase().includes(q) ||
         (u.serial_number ?? "").toLowerCase().includes(q) ||
-        (u.model ?? "").toLowerCase().includes(q)),
+        (u.model ?? "").toLowerCase().includes(q) ||
+        u.vendor.name.toLowerCase().includes(q)),
   );
   const count = (name: string) => units.filter((u) => u.status.name === name).length;
 
   return (
     <div className="flex flex-col gap-4">
       <section aria-label="Resumen por estado" className="grid gap-3 sm:grid-cols-3">
-        {EQUIPMENT_STATUS.map((s) => (
+        {statuses.map((s) => (
           <div key={s.id} className="rounded-xl border bg-card p-4 text-card-foreground">
             <EquipmentStatusBadge name={s.name} />
             <p className="mt-2 text-2xl font-semibold tabular-nums">{count(s.name)}</p>
@@ -54,7 +63,7 @@ export function EquipmentTable() {
           <span className="sr-only">Buscar equipo</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nombre, modelo o serial"
+            placeholder="Buscar por nombre, modelo, serial o proveedor"
             className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />
         </label>
         <label>
@@ -62,7 +71,7 @@ export function EquipmentTable() {
           <select value={status} onChange={(e) => setStatus(e.target.value)}
             className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <option value="">Todos los estados</option>
-            {EQUIPMENT_STATUS.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+            {statuses.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </label>
       </div>
@@ -97,7 +106,11 @@ export function EquipmentTable() {
                   <td className="px-4 py-3">{u.vendor.name}</td>
                   <td className="px-4 py-3"><EquipmentStatusBadge name={u.status.name} /></td>
                   <td className="px-4 py-3 text-right">
-                    <EditLink href={`/dashboard/equipment/${u.id}/edit`} label={u.equipment.name} />
+                    {canManage ? (
+                      <EditLink href={`/dashboard/equipment/${u.id}/edit`} label={u.equipment.name} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Solo lectura</span>
+                    )}
                   </td>
                 </tr>
               ))}

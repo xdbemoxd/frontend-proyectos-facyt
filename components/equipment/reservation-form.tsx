@@ -6,19 +6,23 @@ import Link from "next/link";
 import { reservationSchema, type ReservationFormErrors } from "@/lib/equipment/schema";
 import { createReservation } from "@/lib/equipment/api";
 import { useEquipment } from "@/lib/equipment/use-equipment";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
+import { useProjects } from "@/lib/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function ReservationForm() {
   const router = useRouter();
-  const { data: units, isLoading: loadingUnits } = useEquipment();
+  const { data: units, isLoading: loadingUnits, error: unitsError } = useEquipment();
+  const { data: projects, isLoading: loadingProjects, error: projectsError } = useProjects();
   const [errors, setErrors] = useState<ReservationFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  // Reservas siguen siendo mock: usan el catalogo mock hasta conectarse.
-  const activeProjects = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
+  // El backend ya limita los proyectos del coordinador a los suyos; el
+  // administrador/aprobador ve todos. Solo se ofrecen los que admiten consumo.
+  const activeProjects = (projects ?? []).filter(
+    (p) => p.status.name === "En ejecución" || p.status.name === "Propuesta",
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,6 +53,16 @@ export function ReservationForm() {
       {formError && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
       )}
+      {unitsError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          No se pudieron cargar los equipos. Recarga la página.
+        </p>
+      )}
+      {projectsError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          No se pudieron cargar los proyectos. Recarga la página.
+        </p>
+      )}
 
       <SelectField id="res-unit" name="id_equipament_supplier" label="Equipo" required defaultValue=""
         placeholder={loadingUnits ? "Cargando…" : "Elige un equipo"}
@@ -60,9 +74,17 @@ export function ReservationForm() {
         error={errors.id_equipament_supplier} />
 
       <SelectField id="res-project" name="id_project" label="Proyecto" required defaultValue=""
-        placeholder="Elige un proyecto"
+        placeholder={
+          loadingProjects
+            ? "Cargando…"
+            : activeProjects.length
+              ? "Elige un proyecto"
+              : "No tienes proyectos disponibles"
+        }
+        disabled={loadingProjects || activeProjects.length === 0}
         options={activeProjects.map((p) => ({ value: p.id, label: `${p.unique_code} · ${p.name}` }))}
-        error={errors.id_project} />
+        error={errors.id_project}
+        hint="Solo puedes reservar para tus proyectos asignados." />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <InputField id="res-start" name="reservation_date" type="datetime-local" label="Inicio" required
@@ -79,7 +101,9 @@ export function ReservationForm() {
           className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           Cancelar
         </Link>
-        <Button type="submit" disabled={pending}>{pending ? "Guardando…" : "Reservar"}</Button>
+        <Button type="submit" disabled={pending || loadingUnits || loadingProjects}>
+          {pending ? "Guardando…" : "Reservar"}
+        </Button>
       </div>
     </form>
   );

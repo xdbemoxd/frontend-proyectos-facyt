@@ -1,154 +1,197 @@
 import { mutate } from "swr";
 import { auditUiEvent } from "@/lib/audit/ui-event";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
-import { MOCK_VENDORS } from "@/lib/vendors/mock";
-import { EQUIPMENT_STATUS, MOCK_RESERVATIONS, MOCK_UNITS } from "./mock";
-import type { EquipmentInput, EquipmentUnit, EquipmentUpdateInput, Reservation, ReservationInput } from "./types";
+import { fetchJson } from "@/lib/http";
+import type {
+  EquipmentCatalogs,
+  EquipmentInput,
+  EquipmentStatus,
+  EquipmentUnit,
+  EquipmentUpdateInput,
+  Reservation,
+  ReservationInput,
+} from "./types";
 
-/** Claves de cache: con SWR seran las URLs de los endpoints. */
-export const EQUIPMENT_KEY = "/equipment";
-export const RESERVATIONS_KEY = "/equipment/reservations";
+/** Claves SWR: URLs del BFF (mismo origen, reenvía el Bearer de la sesión). */
+export const EQUIPMENT_KEY = "/api/equipment?limit=200";
+export const RESERVATIONS_KEY = "/api/equipment/reservations?limit=200";
+export const EQUIPMENT_CATALOGS_KEY = "/api/equipment/catalogs";
 
-// Copias en memoria para que los registros nuevos se vean en los listados.
-let units: EquipmentUnit[] = [...MOCK_UNITS];
-let reservations: Reservation[] = [...MOCK_RESERVATIONS];
+type Paginated<T> = { items: T[]; total: number; limit: number; offset: number };
 
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * MAÑANA: const res = await fetch(`/api${key}`); if (!res.ok) throw ...; return res.json();
- */
-export async function equipmentFetcher(_key: string): Promise<EquipmentUnit[]> {
-  await delay();
-  return [...units].sort((a, b) => a.equipment.name.localeCompare(b.equipment.name, "es"));
+function normalizeStatus(raw: EquipmentStatus): EquipmentStatus {
+  return {
+    id: Number(raw.id),
+    name: String(raw.name),
+    description: raw.description ?? null,
+  };
 }
 
-/** MAÑANA: POST /api/equipment con `input` en el body. */
-export async function createEquipment(input: EquipmentInput): Promise<EquipmentUnit> {
-  await delay();
-  if (input.serial_number && units.some((u) => u.serial_number === input.serial_number)) {
-    throw new Error("Ya existe un equipo con ese número de serie.");
-  }
-  const vendor = MOCK_VENDORS.find((v) => v.id === input.id_vendors);
-  const status = EQUIPMENT_STATUS.find((s) => s.id === input.id_status);
-  if (!vendor || !status) throw new Error("Proveedor o estado no válido.");
-
-  const now = new Date().toISOString();
-  // Si ya existe un equipo con ese nombre, la unidad nueva se asocia a el.
-  const existing = units.find((u) => u.equipment.name.toLowerCase() === input.name.toLowerCase());
-  const unit: EquipmentUnit = {
-    id: crypto.randomUUID(),
-    equipment: existing?.equipment ?? { id: crypto.randomUUID(), name: input.name, description: input.description },
-    vendor: { id: vendor.id, name: vendor.name },
-    status,
-    model: input.model,
-    serial_number: input.serial_number,
-    create_at: now,
-    updated_at: now,
+function normalizeEquipment(raw: EquipmentUnit): EquipmentUnit {
+  return {
+    id: String(raw.id),
+    equipment: {
+      id: String(raw.equipment.id),
+      name: String(raw.equipment.name),
+      description: raw.equipment.description ?? null,
+    },
+    vendor: { id: String(raw.vendor.id), name: String(raw.vendor.name) },
+    status: normalizeStatus(raw.status),
+    model: raw.model ?? null,
+    serial_number: raw.serial_number ?? null,
+    create_at: String(raw.create_at),
+    updated_at: String(raw.updated_at),
+    pending_reservations: Number(raw.pending_reservations ?? 0),
   };
-  units = [...units, unit];
+}
+
+function normalizeReservation(raw: Reservation): Reservation {
+  return {
+    id: String(raw.id),
+    unit: {
+      id: String(raw.unit.id),
+      equipment_name: String(raw.unit.equipment_name),
+      serial_number: raw.unit.serial_number ?? null,
+    },
+    project: {
+      id: String(raw.project.id),
+      unique_code: String(raw.project.unique_code),
+      name: String(raw.project.name),
+    },
+    user: { id: String(raw.user.id), full_name: String(raw.user.full_name) },
+    reservation_date: String(raw.reservation_date),
+    end_date: String(raw.end_date),
+    purpose: raw.purpose ?? null,
+    created_date: String(raw.created_date),
+  };
+}
+
+/** Fetcher con la firma de SWR: (key) => Promise<EquipmentUnit[]>. */
+export async function equipmentFetcher(key: string): Promise<EquipmentUnit[]> {
+  const page = await fetchJson<Paginated<EquipmentUnit>>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los equipos."
+  );
+  return page.items.map(normalizeEquipment);
+}
+
+export async function reservationsFetcher(key: string): Promise<Reservation[]> {
+  const page = await fetchJson<Paginated<Reservation>>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar las reservas."
+  );
+  return page.items.map(normalizeReservation);
+}
+
+export async function equipmentCatalogsFetcher(
+  key: string
+): Promise<EquipmentCatalogs> {
+  const catalogs = await fetchJson<EquipmentCatalogs>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los catálogos."
+  );
+  return {
+    statuses: (catalogs.statuses ?? []).map(normalizeStatus),
+    vendors: (catalogs.vendors ?? []).map((v) => ({
+      id: String(v.id),
+      name: String(v.name),
+    })),
+  };
+}
+
+/** POST /api/equipment (solo admin/aprobador). */
+export async function createEquipment(
+  input: EquipmentInput
+): Promise<EquipmentUnit> {
+  const created = await fetchJson<EquipmentUnit>(
+    "/api/equipment",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo guardar el equipo."
+  );
+
+  const unit = normalizeEquipment(created);
   void mutate(EQUIPMENT_KEY);
-  auditUiEvent({ entity: "Equipment", action: "create", summary: input.name });
+  auditUiEvent({ entity: "Equipment", action: "create", summary: unit.equipment.name });
   return unit;
 }
 
-/** MAÑANA: fetch(`/api${key}`). */
-export async function reservationsFetcher(_key: string): Promise<Reservation[]> {
-  await delay();
-  return [...reservations].sort((a, b) => a.reservation_date.localeCompare(b.reservation_date));
+/** GET /api/equipment/:id. null si no existe o el id no es válido. */
+export async function getEquipment(id: string): Promise<EquipmentUnit | null> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/equipment/${encodeURIComponent(id)}`, {
+      method: "GET",
+    });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor.");
+  }
+
+  if (response.status === 404 || response.status === 422) return null;
+  if (response.status === 403)
+    throw new Error("No tienes permiso para ver este equipo.");
+  if (!response.ok) throw new Error("No se pudo cargar el equipo.");
+  return normalizeEquipment((await response.json()) as EquipmentUnit);
 }
 
 /**
- * MAÑANA: POST /api/equipment/reservations. El backend (restriccion de
- * exclusion en la BD) respondera 409 si hay choque de horario.
+ * PATCH /api/equipment/:id con `expected_updated_at` (bloqueo optimista).
+ * El backend responde 409 si el serial se repite, si la versión cambió o si
+ * se intenta pasar a mantenimiento con reservas pendientes.
  */
-export async function createReservation(input: ReservationInput): Promise<Reservation> {
-  await delay();
-  const unit = units.find((u) => u.id === input.id_equipament_supplier);
-  const project = MOCK_PROJECTS.find((p) => p.id === input.id_project);
-  if (!unit || !project) throw new Error("Equipo o proyecto no válido.");
-  if (unit.status.name === "En mantenimiento") {
-    throw new Error("El equipo está en mantenimiento y no se puede reservar.");
-  }
-
-  // Mismo criterio que la BD: inicio_nuevo < fin AND fin_nuevo > inicio
-  const conflict = reservations.find(
-    (r) =>
-      r.unit.id === unit.id &&
-      input.reservation_date < r.end_date &&
-      input.end_date > r.reservation_date,
+export async function updateEquipment(
+  id: string,
+  input: EquipmentUpdateInput,
+  expectedUpdatedAt: string
+): Promise<EquipmentUnit> {
+  const updated = await fetchJson<EquipmentUnit>(
+    `/api/equipment/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input,
+        expected_updated_at: expectedUpdatedAt,
+      }),
+    },
+    "No se pudo guardar el equipo."
   );
-  if (conflict) {
-    throw new Error(
-      `El equipo ya está reservado en ese horario por el proyecto ${conflict.project.unique_code}.`,
-    );
-  }
 
-  const reservation: Reservation = {
-    id: crypto.randomUUID(),
-    unit: { id: unit.id, equipment_name: unit.equipment.name, serial_number: unit.serial_number },
-    project: { id: project.id, unique_code: project.unique_code, name: project.name },
-    user: { id: "me", full_name: "Usuario actual" }, // el backend lo toma del token
-    reservation_date: input.reservation_date,
-    end_date: input.end_date,
-    purpose: input.purpose,
-    created_date: new Date().toISOString(),
-  };
-  reservations = [...reservations, reservation];
+  const unit = normalizeEquipment(updated);
+  void mutate(EQUIPMENT_KEY);
+  auditUiEvent({ entity: "Equipment", action: "update", summary: unit.equipment.name });
+  return unit;
+}
+
+/**
+ * POST /api/equipment/reservations.
+ * La BD rechaza el solape (409); el backend lo traduce sin filtrar SQL.
+ */
+export async function createReservation(
+  input: ReservationInput
+): Promise<Reservation> {
+  const created = await fetchJson<Reservation>(
+    "/api/equipment/reservations",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo guardar la reserva."
+  );
+
+  const reservation = normalizeReservation(created);
   void mutate(RESERVATIONS_KEY);
+  void mutate(EQUIPMENT_KEY);
   auditUiEvent({
     entity: "Reservation",
     action: "reserve",
-    summary: `${unit.equipment.name} para ${project.unique_code}`,
+    summary: `${reservation.unit.equipment_name} para ${reservation.project.unique_code}`,
   });
   return reservation;
-}
-
-/** MAÑANA: fetch(`/api/equipment/${id}`) */
-export async function getEquipment(id: string): Promise<EquipmentUnit | null> {
-  await delay(300);
-  return units.find((u) => u.id === id) ?? null;
-}
-
-/** Reservas de la unidad que aún no terminan. */
-export function upcomingReservations(unitId: string): Reservation[] {
-  const now = new Date().toISOString();
-  return reservations.filter((r) => r.unit.id === unitId && r.end_date > now);
-}
-
-/**
- * MAÑANA: PATCH /api/equipment/:id con { ...input, updated_at: expectedUpdatedAt }.
- * El backend responde 409 si el serial se repite, si updated_at no coincide
- * o si se pasa a mantenimiento con reservas pendientes.
- */
-export async function updateEquipment(id: string, input: EquipmentUpdateInput, expectedUpdatedAt: string): Promise<EquipmentUnit> {
-  await delay();
-  const unit = units.find((u) => u.id === id);
-  if (!unit) throw new Error("Equipo no encontrado.");
-  if (unit.updated_at !== expectedUpdatedAt) throw new Error("Otra persona modificó este registro mientras lo editabas. Recarga la página para ver los cambios.");
-  const status = EQUIPMENT_STATUS.find((s) => s.id === input.id_status);
-  if (!status) throw new Error("Estado no válido.");
-  if (input.serial_number && units.some((u) => u.id !== id && u.serial_number === input.serial_number)) {
-    throw new Error("Ya existe un equipo con ese número de serie.");
-  }
-  if (status.name === "En mantenimiento" && unit.status.name !== "En mantenimiento") {
-    const pending = upcomingReservations(id);
-    if (pending.length > 0) {
-      throw new Error(
-        `No se puede pasar a mantenimiento: tiene ${pending.length} reserva(s) pendiente(s). Reprográmalas primero.`,
-      );
-    }
-  }
-
-  const now = new Date().toISOString();
-  const equipment = { ...unit.equipment, name: input.name, description: input.description };
-  units = units.map((u) => {
-    if (u.id === id) {
-      return { ...u, equipment, status, model: input.model, serial_number: input.serial_number, updated_at: now };
-    }
-    return u.equipment.id === unit.equipment.id ? { ...u, equipment } : u;
-  });
-  void mutate(EQUIPMENT_KEY);
-  auditUiEvent({ entity: "Equipment", action: "update", summary: input.name });
-  return units.find((u) => u.id === id)!;
 }

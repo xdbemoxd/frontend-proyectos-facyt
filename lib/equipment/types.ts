@@ -5,6 +5,12 @@ export type EquipmentStatus = {
   description: string | null;
 };
 
+/** Proveedor minimo del catalogo de equipos (sin datos de contacto). */
+export type EquipmentVendor = {
+  id: string;
+  name: string;
+};
+
 /**
  * Unidad fisica de un equipo (private.equipament_supplier) con sus FK
  * resueltas: equipo (private.equipment), proveedor y estado.
@@ -12,12 +18,20 @@ export type EquipmentStatus = {
 export type EquipmentUnit = {
   id: string;
   equipment: { id: string; name: string; description: string | null };
-  vendor: { id: string; name: string };
+  vendor: EquipmentVendor;
   status: EquipmentStatus;
   model: string | null;
   serial_number: string | null;
   create_at: string;
   updated_at: string;
+  /** Reservas cuya hora de fin aun no pasa (lo calcula el backend). */
+  pending_reservations?: number;
+};
+
+/** Catalogos reales para los formularios de equipos y reservas. */
+export type EquipmentCatalogs = {
+  statuses: EquipmentStatus[];
+  vendors: EquipmentVendor[];
 };
 
 /** Datos del formulario (POST /equipment). */

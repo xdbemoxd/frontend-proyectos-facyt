@@ -1,10 +1,12 @@
+import { requireRole } from "@/components/auth/require-role";
 import { PageHeader } from "@/components/layout/page-header";
 import { ReservationsTable } from "@/components/equipment/reservations-table";
 import { SectionArt } from "@/components/decor/section-art";
 
 export const metadata = { title: "Reservas de equipos" };
 
-export default function ReservationsPage() {
+export default async function ReservationsPage() {
+  await requireRole();
   return (
     <main className="relative overflow-hidden p-6">
       <SectionArt variant="reservations" />

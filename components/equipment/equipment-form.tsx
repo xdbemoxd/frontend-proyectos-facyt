@@ -5,17 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { equipmentSchema, type EquipmentFormErrors } from "@/lib/equipment/schema";
 import { createEquipment } from "@/lib/equipment/api";
-import { EQUIPMENT_STATUS } from "@/lib/equipment/mock";
-import { useVendors } from "@/lib/vendors/use-vendors";
+import { useEquipmentCatalogs } from "@/lib/equipment/use-equipment";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function EquipmentForm() {
   const router = useRouter();
-  const { data: vendors, isLoading: loadingVendors } = useVendors();
+  const { data: catalogs, isLoading: loadingCatalogs, error: catalogsError } = useEquipmentCatalogs();
   const [errors, setErrors] = useState<EquipmentFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  const statuses = catalogs?.statuses ?? [];
+  const vendors = catalogs?.vendors ?? [];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +48,11 @@ export function EquipmentForm() {
       {formError && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
       )}
+      {catalogsError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          No se pudieron cargar los catálogos. Recarga la página.
+        </p>
+      )}
 
       <InputField id="eq-name" name="name" label="Nombre del equipo" required maxLength={150}
         error={errors.name} hint="Si ya existe un equipo con ese nombre, se registra como otra unidad." />
@@ -55,16 +62,19 @@ export function EquipmentForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <InputField id="eq-model" name="model" label="Modelo" maxLength={100} error={errors.model} />
         <InputField id="eq-serial" name="serial_number" label="Número de serie" maxLength={100}
-          error={errors.serial_number} />
+          error={errors.serial_number} hint="Debe ser único entre las unidades." />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <SelectField id="eq-vendor" name="id_vendors" label="Proveedor" required defaultValue=""
-          placeholder={loadingVendors ? "Cargando…" : "Elige un proveedor"}
-          options={(vendors ?? []).map((v) => ({ value: v.id, label: v.name }))}
+          placeholder={loadingCatalogs ? "Cargando…" : "Elige un proveedor"}
+          options={vendors.map((v) => ({ value: v.id, label: v.name }))}
           error={errors.id_vendors} />
-        <SelectField id="eq-status" name="id_status" label="Estado" required defaultValue={EQUIPMENT_STATUS[0].id}
-          options={EQUIPMENT_STATUS.map((s) => ({ value: s.id, label: s.name }))}
+        <SelectField key={statuses[0]?.id ?? "status-loading"}
+          id="eq-status" name="id_status" label="Estado" required
+          defaultValue={statuses[0]?.id ?? ""}
+          placeholder={loadingCatalogs ? "Cargando…" : "Elige un estado"}
+          options={statuses.map((s) => ({ value: s.id, label: s.name }))}
           error={errors.id_status} />
       </div>
 
@@ -73,7 +83,7 @@ export function EquipmentForm() {
           className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           Cancelar
         </Link>
-        <Button type="submit" disabled={pending}>{pending ? "Guardando…" : "Guardar equipo"}</Button>
+        <Button type="submit" disabled={pending || loadingCatalogs}>{pending ? "Guardando…" : "Guardar equipo"}</Button>
       </div>
     </form>
   );
