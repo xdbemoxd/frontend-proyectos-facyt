@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, FolderKanban, Wallet } from "lucide-react";
 import { useProjects } from "@/lib/projects/use-projects";
 import { useStock } from "@/lib/inventory/use-stock";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const pct = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 1 });
 
@@ -36,11 +37,7 @@ export function DashboardKpis() {
   const { data: stock, isLoading: ls } = useStock();
 
   if ((lp && !projects) || (ls && !stock)) {
-    return (
-      <section aria-label="Indicadores" aria-busy="true" className="grid gap-4 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-xl border bg-muted" />)}
-      </section>
-    );
+    return <LoadingState label="Cargando indicadores…" rows={0} />;
   }
 
   const all = projects ?? [];

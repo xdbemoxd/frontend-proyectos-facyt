@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Lock, Search } from "lucide-react";
 import { useDispatches } from "@/lib/dispatch/use-dispatch";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" });
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
@@ -14,7 +15,7 @@ export function DispatchTable() {
   const [project, setProject] = useState("");
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando bitácora…</p>;
+    return <LoadingState label="Cargando bitácora…" />;
   }
   if (error) {
     return (

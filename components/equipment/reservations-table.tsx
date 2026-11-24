@@ -2,6 +2,7 @@
 
 import { useReservations } from "@/lib/equipment/use-equipment";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" });
 const timeFmt = new Intl.DateTimeFormat("es-VE", { timeStyle: "short" });
@@ -14,7 +15,7 @@ export function ReservationsTable() {
   const { data, error, isLoading, mutate } = useReservations();
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando reservas…</p>;
+    return <LoadingState label="Cargando reservas…" />;
   }
   if (error) {
     return (

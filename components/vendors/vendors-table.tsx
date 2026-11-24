@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useVendors } from "@/lib/vendors/use-vendors";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
@@ -13,7 +14,7 @@ export function VendorsTable() {
   const [query, setQuery] = useState("");
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando proveedores…</p>;
+    return <LoadingState label="Cargando proveedores…" />;
   }
 
   if (error) {

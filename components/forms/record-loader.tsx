@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LoadingState } from "@/components/ui/loading-state";
 
 /** Carga un registro por id. undefined = cargando, null = no existe. */
 export function useRecord<T>(load: (id: string) => Promise<T | null>, id: string) {
@@ -18,7 +19,7 @@ export function useRecord<T>(load: (id: string) => Promise<T | null>, id: string
 /** Mensaje de "Cargando…" o "No encontrado" para los formularios de edición. */
 export function RecordStatus({ loading, notFound }: { loading: boolean; notFound: string }) {
   if (loading) {
-    return <p className="mx-auto max-w-xl text-sm text-muted-foreground" aria-busy="true">Cargando…</p>;
+    return <LoadingState compact label="Cargando…" className="mx-auto max-w-xl" />;
   }
   return (
     <p className="mx-auto max-w-xl rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">

@@ -7,6 +7,7 @@ import { EQUIPMENT_STATUS } from "@/lib/equipment/mock";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
 import { EquipmentStatusBadge } from "./status-badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function EquipmentTable() {
   const { data, error, isLoading, mutate } = useEquipment();
@@ -14,7 +15,7 @@ export function EquipmentTable() {
   const [status, setStatus] = useState("");
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando equipos…</p>;
+    return <LoadingState label="Cargando equipos…" />;
   }
   if (error) {
     return (

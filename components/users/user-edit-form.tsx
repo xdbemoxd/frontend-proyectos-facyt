@@ -11,6 +11,7 @@ import { updateUserAction } from "@/actions/users.action";
 import { Button } from "@/components/ui/button";
 import { SelectField, zodFieldErrors } from "@/components/forms/form-field";
 import { UserStateBadge } from "./user-state-badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
 type Props = { id: string; currentUserEmail: string | null };
 
@@ -23,7 +24,7 @@ export function UserEditForm({ id, currentUserEmail }: Props) {
   const [pending, setPending] = useState(false);
 
   if (isLoading) {
-    return <p className="mx-auto max-w-xl text-sm text-muted-foreground" aria-busy="true">Cargando usuario…</p>;
+    return <LoadingState compact label="Cargando usuario…" className="mx-auto max-w-xl" />;
   }
   if (error) {
     return (

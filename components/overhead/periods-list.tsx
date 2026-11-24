@@ -5,6 +5,7 @@ import { ChevronDown, Lock } from "lucide-react";
 import { useOverheadPeriods } from "@/lib/overhead/use-overhead";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const money = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
@@ -17,7 +18,7 @@ export function PeriodsList() {
   const [open, setOpen] = useState<string | null>(null);
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando períodos…</p>;
+    return <LoadingState label="Cargando períodos…" />;
   }
   if (error) {
     return (

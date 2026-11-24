@@ -7,6 +7,7 @@ import { ENTITY_LABELS, OUTCOME_LABELS, actionLabel, entityLabel } from "@/lib/a
 import type { AuditEntry, AuditFilters, AuditUser, Outcome } from "@/lib/audit/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingState } from "@/components/ui/loading-state";
 import { OutcomeBadge } from "./outcome-badge";
 import { HttpStatusBadge } from "./http-status-badge";
 import { AuditDetail } from "./audit-detail";
@@ -44,28 +45,10 @@ function StatCard({ label, value, icon: Icon, tone, active, onClick }: {
 
 function AuditLoadingState() {
   return (
-    <div
-      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed bg-card/60 p-10 text-center"
-      aria-busy="true"
-      aria-live="polite"
-    >
-      <Spinner className="size-12" label="Cargando registros de auditoría" />
-      <div className="space-y-1">
-        <p className="text-sm font-medium">Cargando auditoría…</p>
-        <p className="text-xs text-muted-foreground">
-          Consultando peticiones, usuarios y eventos de seguridad.
-        </p>
-      </div>
-      <div className="mt-2 w-full max-w-md space-y-2" aria-hidden="true">
-        {[0, 1, 2].map((index) => (
-          <div
-            key={index}
-            className="h-9 animate-pulse rounded-lg bg-muted/70"
-            style={{ animationDelay: `${index * 120}ms` }}
-          />
-        ))}
-      </div>
-    </div>
+    <LoadingState
+      label="Cargando auditoría…"
+      description="Consultando peticiones, usuarios y eventos de seguridad."
+    />
   );
 }
 

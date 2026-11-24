@@ -7,6 +7,7 @@ import { useOverheadPeriods } from "@/lib/overhead/use-overhead";
 import { useEquipment, useReservations } from "@/lib/equipment/use-equipment";
 import { downloadCsv, type Column } from "@/lib/reports/export";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 type ReportId = "expenses" | "overhead" | "equipment";
 
@@ -166,7 +167,7 @@ export function ReportsView() {
         </div>
 
         {loading || !report ? (
-          <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando datos…</p>
+          <LoadingState label="Cargando datos…" />
         ) : report.rows.length === 0 ? (
           <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
             No hay datos para este reporte.

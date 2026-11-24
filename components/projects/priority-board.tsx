@@ -9,6 +9,7 @@ import { priorityChangeSchema, type PriorityChangeErrors } from "@/lib/projects/
 import type { Project } from "@/lib/projects/types";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const PRIORITY_STYLES: Record<string, string> = {
   Crítica: "bg-red-500/10 text-red-700 dark:bg-red-400/10 dark:text-red-300",
@@ -95,7 +96,7 @@ export function PriorityBoard() {
   const [lastChanged, setLastChanged] = useState<string | null>(null);
 
   if (isLoading && !projects) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando proyectos…</p>;
+    return <LoadingState label="Cargando proyectos…" />;
   }
   if (error) {
     return (
@@ -164,7 +165,7 @@ export function PriorityBoard() {
           Bitácora de cambios
         </h2>
         {!log ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <LoadingState compact label="Cargando bitácora…" className="py-2" />
         ) : log.length === 0 ? (
           <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Sin cambios registrados.</p>
         ) : (

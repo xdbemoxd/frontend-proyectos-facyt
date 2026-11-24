@@ -7,6 +7,7 @@ import { RESOURCE_TYPES } from "@/lib/inventory/mock";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
 import { StockBadge } from "./stock-badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
 
@@ -17,7 +18,7 @@ export function StockTable() {
   const [onlyCritical, setOnlyCritical] = useState(false);
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando inventario…</p>;
+    return <LoadingState label="Cargando inventario…" />;
   }
   if (error) {
     return (

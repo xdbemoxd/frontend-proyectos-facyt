@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { useLots } from "@/lib/lots/use-lots";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
@@ -14,7 +15,7 @@ export function LotsTable() {
   const [query, setQuery] = useState("");
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando lotes…</p>;
+    return <LoadingState label="Cargando lotes…" />;
   }
   if (error) {
     return (

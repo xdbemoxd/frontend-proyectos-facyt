@@ -5,6 +5,7 @@ import type { Project } from "@/lib/projects/types";
 import { isProjectLocked } from "@/lib/projects/api";
 import { Button } from "@/components/ui/button";
 import { EditLink } from "@/components/forms/edit-link";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const STATUS_STYLES: Record<string, string> = {
   Propuesta: "bg-slate-500/10 text-slate-600 dark:bg-slate-400/10 dark:text-slate-300",
@@ -80,7 +81,7 @@ export function ProjectsTable() {
   const { data, error, isLoading, mutate } = useProjects();
 
   if (isLoading && !data) {
-    return <p className="p-6 text-sm text-gray-500" aria-busy="true">Cargando proyectos…</p>;
+    return <LoadingState label="Cargando proyectos…" className="m-6" />;
   }
 
   if (error) {

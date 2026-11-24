@@ -8,6 +8,7 @@ import { ACTION_LABELS, EXPENSE_STATUS, TRANSITIONS } from "@/lib/expenses/mock"
 import type { ExpenseStatusCode } from "@/lib/expenses/types";
 import { Button } from "@/components/ui/button";
 import { ExpenseStatusBadge } from "./expense-status-badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const FLOW: ExpenseStatusCode[] = ["draft", "pending", "approved", "executed"];
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
@@ -20,7 +21,7 @@ export function ExpensesBoard() {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando solicitudes…</p>;
+    return <LoadingState label="Cargando solicitudes…" />;
   }
   if (error) {
     return (

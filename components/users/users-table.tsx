@@ -9,6 +9,7 @@ import { roleLabel } from "@/lib/users/labels";
 import { userState } from "@/lib/users/types";
 import { Button } from "@/components/ui/button";
 import { UserStateBadge } from "./user-state-badge";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const dateFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" });
 
@@ -35,7 +36,7 @@ export function UsersTable() {
   });
 
   if (isLoading && !data) {
-    return <p className="py-6 text-sm text-muted-foreground" aria-busy="true">Cargando usuarios…</p>;
+    return <LoadingState label="Cargando usuarios…" />;
   }
   if (error) {
     return (
