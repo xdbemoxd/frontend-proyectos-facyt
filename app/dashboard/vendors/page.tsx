@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { VendorsTable } from "@/components/vendors/vendors-table";
+import { SectionArt } from "@/components/decor/section-art";
 
 export const metadata = { title: "Proveedores" };
 
 export default function VendorsPage() {
   return (
-    <main className="p-6">
+    <main className="relative overflow-hidden p-6">
+      <SectionArt variant="vendors" />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-medium">Proveedores</h1>
