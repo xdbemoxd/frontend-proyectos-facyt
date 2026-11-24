@@ -39,7 +39,7 @@ export async function Header() {
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: "/" });
+            await signIn("google", { redirectTo: "/dashboard" });
           }}
         >
           <Button type="submit" size="sm">
