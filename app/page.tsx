@@ -2,6 +2,7 @@ import { auth, signIn } from "@/auth";
 import { redirect } from "next/navigation";
 import { Boxes, CalendarClock, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GoogleIcon } from "@/components/icons/google-icon";
 import { AtomArt, MoleculeArt } from "@/components/landing/chemistry-art";
 
 export const metadata = { title: "Inicio" };
@@ -59,7 +60,9 @@ export default async function HomePage() {
             }}
           >
             <Button type="submit" className="h-11 px-6 text-base">
-              Iniciar sesión con Google
+              <span>Iniciar sesión con</span>
+              <GoogleIcon className="size-4" />
+              <span>Google</span>
             </Button>
           </form>
 
