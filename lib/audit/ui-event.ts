@@ -10,7 +10,7 @@ export function auditUiEvent(event: UiEventInput) {
   void fetch("/api/audit/ui-event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...event, path: window.location.pathname }),
+    body: JSON.stringify({ ...event, summary: event.summary.slice(0, 200), path: window.location.pathname }),
     keepalive: true,
   }).catch(() => {});
 }

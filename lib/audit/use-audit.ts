@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import { auditFetcher, auditKey } from "./api";
-import type { AuditFilters, AuditPage } from "./types";
+import useSWR from "swr";
+import { auditFetcher, auditKey, auditUsersFetcher } from "./api";
+import type { AuditFilters, AuditPage, AuditUser } from "./types";
 
 /**
  * Misma forma que useSWR; la clave cambia con los filtros.
@@ -15,22 +16,26 @@ export function useAudit(filters: AuditFilters) {
   const [data, setData] = useState<AuditPage | undefined>(undefined);
   const [error, setError] = useState<Error | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const requestId = useRef(0);
 
   const mutate = useCallback(async () => {
+    const current = ++requestId.current;
     setIsLoading(true);
     try {
       const result = await auditFetcher(key);
-      setData(result); // se conserva el resultado anterior mientras carga (keepPreviousData)
+      if (current !== requestId.current) return;
+      setData(result);
       setError(undefined);
       return result;
     } catch (e) {
+      if (current !== requestId.current) return;
       if (e instanceof Error && e.message === "No autenticado") {
         await signOut({ redirectTo: "/login?error=SessionExpired" });
         return;
       }
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
-      setIsLoading(false);
+      if (current === requestId.current) setIsLoading(false);
     }
   }, [key]);
 
@@ -39,4 +44,8 @@ export function useAudit(filters: AuditFilters) {
   }, [mutate]);
 
   return { data, error, isLoading, mutate };
+}
+
+export function useAuditUsers() {
+  return useSWR<AuditUser[]>("audit-users", auditUsersFetcher);
 }

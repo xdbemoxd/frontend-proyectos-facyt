@@ -174,3 +174,14 @@ async function fetchAudit(key: string): Promise<AuditPage> {
     counts,
   };
 }
+
+export async function auditUsersFetcher(): Promise<AuditUser[]> {
+  const response = await fetch("/api/audit/users", { cache: "no-store" });
+  if (!response.ok) throw new Error(await readError(response));
+
+  const rows = (await response.json()) as BackendUser[];
+  return rows
+    .map((user) => mapUser(user, user.id, user.email))
+    .filter((user): user is AuditUser => user !== null)
+    .sort((a, b) => a.full_name.localeCompare(b.full_name, "es"));
+}

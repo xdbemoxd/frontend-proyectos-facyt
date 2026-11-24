@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as { entity?: unknown; action?: unknown; summary?: unknown; path?: unknown };
     const entity = typeof body.entity === "string" ? body.entity : "";
     const action = typeof body.action === "string" ? body.action : "";
-    const summary = typeof body.summary === "string" ? body.summary : "";
+    const summary = typeof body.summary === "string" ? body.summary.slice(0, 200) : "";
     const path = typeof body.path === "string" ? body.path : "";
 
     if (!entity || !action || !summary || !path.startsWith("/dashboard")) {

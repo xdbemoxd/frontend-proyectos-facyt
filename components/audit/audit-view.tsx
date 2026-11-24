@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Activity, ChevronLeft, ChevronRight, Lock, ShieldAlert, XCircle } from "lucide-react";
-import { useAudit } from "@/lib/audit/use-audit";
+import { useAudit, useAuditUsers } from "@/lib/audit/use-audit";
 import { ENTITY_LABELS, OUTCOME_LABELS, actionLabel, entityLabel } from "@/lib/audit/labels";
 import type { AuditEntry, AuditFilters, AuditUser, Outcome } from "@/lib/audit/types";
 import { Button } from "@/components/ui/button";
@@ -56,16 +56,16 @@ export function AuditView() {
   const [filters, setFilters] = useState<AuditFilters>(defaultFilters);
   const [selected, setSelected] = useState<AuditEntry | null>(null);
   const { data, error, isLoading, mutate } = useAudit(filters);
+  const { data: knownUsers } = useAuditUsers();
 
-  // Evita una segunda peticion pesada (/api/users) solo para el filtro.
-  const users = Array.from(
-    new Map<string, AuditUser>(
-      (data?.items ?? [])
-        .map((entry) => entry.user)
-        .filter((user): user is AuditUser => user !== null)
-        .map((user) => [user.id, user]),
-    ).values(),
-  );
+  const users = useMemo(() => {
+    const byId = new Map<string, AuditUser>();
+    for (const user of knownUsers ?? []) byId.set(user.id, user);
+    for (const entry of data?.items ?? []) {
+      if (entry.user) byId.set(entry.user.id, entry.user);
+    }
+    return [...byId.values()].sort((a, b) => a.full_name.localeCompare(b.full_name, "es"));
+  }, [knownUsers, data?.items]);
 
   const set = (patch: Partial<AuditFilters>) => setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
   const toggleOutcome = (o?: Outcome) => set({ outcome: filters.outcome === o ? undefined : o });
@@ -154,8 +154,19 @@ export function AuditView() {
               </div>
             </div>
           )}
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
             <caption className="sr-only">Registro de auditoría. Selecciona una fila para ver el detalle.</caption>
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+              <col className="w-[20%]" />
+              <col className="w-[7%]" />
+              <col className="w-[16%]" />
+              <col className="w-[10%]" />
+              <col className="w-[6%]" />
+              <col className="w-[6%]" />
+            </colgroup>
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
               <tr>
                 <th scope="col" className="px-4 py-3">Fecha y hora</th>
@@ -179,12 +190,16 @@ export function AuditView() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    {e.user ? e.user.full_name : <span className="text-muted-foreground">Usuario eliminado</span>}
+                    {e.user ? (
+                      <span className="block truncate" title={e.user.full_name}>{e.user.full_name}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Usuario eliminado</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">{actionLabel(e.action)}</td>
                   <td className="px-4 py-3 font-mono text-xs">
                     {e.method || e.path ? (
-                      <span>
+                      <span className="block truncate" title={`${e.method ?? ""} ${e.path ?? ""}`.trim()}>
                         {e.method}
                         {e.path && <span className="text-muted-foreground"> {e.path}</span>}
                       </span>
@@ -198,7 +213,7 @@ export function AuditView() {
                   <td className="px-4 py-3">
                     {e.user_agent ? (
                       <span
-                        className="block max-w-[220px] truncate font-mono text-xs"
+                        className="block truncate font-mono text-xs"
                         title={e.user_agent}
                       >
                         {e.user_agent}
@@ -208,11 +223,11 @@ export function AuditView() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div>{entityLabel(e.entity)}</div>
-                    {e.entity_label && <div className="text-xs text-muted-foreground">{e.entity_label}</div>}
+                    <div className="truncate" title={entityLabel(e.entity)}>{entityLabel(e.entity)}</div>
+                    {e.entity_label && <div className="truncate text-xs text-muted-foreground" title={e.entity_label}>{e.entity_label}</div>}
                   </td>
                   <td className="px-4 py-3"><OutcomeBadge outcome={e.outcome} /></td>
-                  <td className="px-4 py-3 font-mono text-xs">{e.ip_address}</td>
+                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{e.ip_address}</td>
                 </tr>
               ))}
             </tbody>
