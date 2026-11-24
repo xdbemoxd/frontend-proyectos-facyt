@@ -1,6 +1,6 @@
 import { auth, signIn } from "@/auth";
 import { redirect } from "next/navigation";
-import { Boxes, CalendarClock, FolderKanban, ShieldCheck } from "lucide-react";
+import { Boxes, CalendarClock, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Inicio" };
@@ -71,11 +71,6 @@ export default async function HomePage() {
             </article>
           ))}
         </section>
-
-        <p className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
-          Solo Administrador, Coordinador de Proyecto y Aprobador/Gestor de Inventario tienen acceso.
-        </p>
       </div>
     </main>
   );
