@@ -5,8 +5,8 @@ Interfaz web del Sistema de Control de Proyectos y Recursos de FACYT.
 - **Framework:** Next.js 16 (App Router, React 19).
 - **Autenticación:** NextAuth v5 con Google.
 - **UI:** Tailwind CSS 4, componentes shadcn/ui, modo claro/oscuro.
-- **Datos:** SWR. Los módulos de negocio aún usan datos mock; usuarios, roles y
-  auditoría ya consumen el backend real mediante BFF routes.
+- **Datos:** SWR. Usuarios, roles, auditoría, solicitudes de gasto y overhead ya
+  consumen el backend real mediante BFF routes; otros módulos conservan mocks.
 
 El backend vive en el repositorio hermano `../backend-proyectos-facyt-dw`.
 
@@ -174,12 +174,18 @@ sustituye la del backend.
 | Proyectos, prioridad | Mock en memoria (SWR) |
 | Inventario, lotes, despachos | Mock en memoria |
 | Equipos y reservas | Mock en memoria |
-| Solicitudes de gasto | Mock en memoria |
-| Overhead y reportes | Cálculo/exportación local sobre mock |
+| Solicitudes de gasto | Conectado al backend real (BFF + SWR) |
+| Overhead y reportes | Overhead real; reportes consumen los hooks reales |
 
-Los mocks están marcados con comentarios `MAÑANA:` y `auditUiEvent(...)`. Al
-conectar los endpoints reales, cada mutación debe auditarse en el backend y el
-puente `ui-event` debe retirarse.
+Las solicitudes de gasto y el prorrateo ya no usan snapshots locales: los
+reportes de gastos y overhead leen los mismos hooks reales
+(`useExpenses`/`useOverheadPeriods`). Los BFF routes validan los cuerpos con Zod
+y reenvían el Bearer de la sesión; el backend vuelve a validar rol, alcance,
+máquina de estados y cuadre del reparto.
+
+Los mocks que quedan en otros módulos están marcados con comentarios `MAÑANA:` y
+`auditUiEvent(...)`. Al conectar esos endpoints reales, cada mutación debe
+auditarse en el backend y el puente `ui-event` debe retirarse.
 
 ---
 

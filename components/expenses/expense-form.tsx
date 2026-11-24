@@ -6,21 +6,24 @@ import Link from "next/link";
 import { expenseSchema, type ExpenseFormErrors } from "@/lib/expenses/schema";
 import { changeExpenseStatus, createExpense } from "@/lib/expenses/api";
 import { useStock } from "@/lib/inventory/use-stock";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
+import { useProjects } from "@/lib/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function ExpenseForm() {
   const router = useRouter();
-  const { data: stock, isLoading: ls } = useStock();
+  const { data: stock, isLoading: loadingStock } = useStock();
+  const { data: projects, error: projectsError, isLoading: loadingProjects } = useProjects();
   const [errors, setErrors] = useState<ExpenseFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [itemId, setItemId] = useState("");
 
   const selected = stock?.find((s) => s.supplier_item_id === itemId);
-  // Solicitudes de gasto siguen siendo mock: usan el catalogo mock.
-  const usable = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
+  // El backend ya limita al coordinador a sus propios proyectos.
+  const usable = (projects ?? []).filter(
+    (p) => p.status.name === "En ejecución" || p.status.name === "Propuesta",
+  );
 
   async function submit(form: HTMLFormElement, sendNow: boolean) {
     if (pending) return;
@@ -34,7 +37,19 @@ export function ExpenseForm() {
     setPending(true);
     try {
       const created = await createExpense(parsed.data);
-      if (sendNow) await changeExpenseStatus(created.id, "pending");
+      if (sendNow) {
+        try {
+          await changeExpenseStatus(created.id, "pending");
+        } catch (err) {
+          setFormError(
+            `El borrador se guardó, pero no se pudo enviar a aprobación: ${
+              err instanceof Error ? err.message : "inténtalo desde el listado."
+            }`,
+          );
+          setPending(false);
+          return;
+        }
+      }
       router.push("/dashboard/expenses");
       router.refresh();
     } catch (err) {
@@ -49,15 +64,20 @@ export function ExpenseForm() {
       {formError && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
       )}
+      {projectsError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          No se pudieron cargar tus proyectos. Recarga la página.
+        </p>
+      )}
 
       <SelectField id="exp-project" name="id_project" label="Proyecto" required defaultValue=""
-        placeholder="Elige el proyecto"
+        placeholder={loadingProjects ? "Cargando…" : usable.length ? "Elige el proyecto" : "No hay proyectos disponibles"}
         options={usable.map((p) => ({ value: p.id, label: `${p.unique_code} · ${p.name}` }))}
         error={errors.id_project} />
 
       <SelectField id="exp-item" name="id_raw_materials_suppliers" label="Material (opcional)"
         value={itemId} onChange={(e) => setItemId(e.target.value)}
-        placeholder={ls ? "Cargando…" : "Ninguno / no está en el catálogo"}
+        placeholder={loadingStock ? "Cargando…" : "Ninguno / no está en el catálogo"}
         options={(stock ?? []).map((s) => ({ value: s.supplier_item_id, label: `${s.resource_name} · ${s.vendor_name}` }))}
         error={errors.id_raw_materials_suppliers}
         hint={selected ? `Stock actual: ${selected.current_stock} ${selected.unit}` : undefined} />
@@ -73,8 +93,8 @@ export function ExpenseForm() {
           className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           Cancelar
         </Link>
-        <Button type="submit" variant="outline" disabled={pending}>Guardar borrador</Button>
-        <Button type="button" disabled={pending}
+        <Button type="submit" variant="outline" disabled={pending || !usable.length}>Guardar borrador</Button>
+        <Button type="button" disabled={pending || !usable.length}
           onClick={(e) => { const f = e.currentTarget.form; if (f) void submit(f, true); }}>
           {pending ? "Guardando…" : "Enviar a aprobación"}
         </Button>

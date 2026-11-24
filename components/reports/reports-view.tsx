@@ -27,17 +27,23 @@ type Report = { columns: Column<Row>[]; rows: Row[]; summary: string[] };
 
 const col = (header: string, key: string): Column<Row> => ({ header, value: (r) => r[key] ?? null });
 
-export function ReportsView() {
+export function ReportsView({ canViewOverhead = false }: { canViewOverhead?: boolean }) {
   const [active, setActive] = useState<ReportId>("expenses");
   const expenses = useExpenses();
-  const periods = useOverheadPeriods();
+  const periods = useOverheadPeriods(canViewOverhead);
   const units = useEquipment();
   const reservations = useReservations();
+  const visibleReports = REPORTS.filter((r) => r.id !== "overhead" || canViewOverhead);
 
   const loading =
     (active === "expenses" && !expenses.data) ||
     (active === "overhead" && !periods.data) ||
     (active === "equipment" && (!units.data || !reservations.data));
+
+  const loadError =
+    (active === "expenses" && expenses.error) ||
+    (active === "overhead" && periods.error) ||
+    (active === "equipment" && (units.error || reservations.error));
 
   const report = useMemo<Report | null>(() => {
     if (active === "expenses" && expenses.data) {
@@ -125,14 +131,13 @@ export function ReportsView() {
     return null;
   }, [active, expenses.data, periods.data, units.data, reservations.data]);
 
-  const meta = REPORTS.find((r) => r.id === active)!;
-  const today = new Date();
+  const meta = visibleReports.find((r) => r.id === active)!;  const today = new Date();
   const stamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
     <div className="flex flex-col gap-5">
       <div role="tablist" aria-label="Tipo de reporte" className="grid gap-3 sm:grid-cols-3 print:hidden">
-        {REPORTS.map((r) => (
+        {visibleReports.map((r) => (
           <button key={r.id} type="button" role="tab" aria-selected={active === r.id}
             onClick={() => setActive(r.id)}
             className={`rounded-xl border bg-card p-4 text-left text-card-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring ${active === r.id ? "ring-2 ring-ring" : ""}`}>
@@ -166,7 +171,11 @@ export function ReportsView() {
           </div>
         </div>
 
-        {loading || !report ? (
+        {loadError ? (
+          <p role="alert" className="rounded-xl border border-destructive/30 p-6 text-sm text-destructive">
+            No se pudieron cargar los datos del reporte. Intenta recargar la página.
+          </p>
+        ) : loading || !report ? (
           <LoadingState label="Cargando datos…" />
         ) : report.rows.length === 0 ? (
           <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">

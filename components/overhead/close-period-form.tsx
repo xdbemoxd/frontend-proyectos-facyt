@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { closePeriodSchema, type ClosePeriodErrors } from "@/lib/overhead/schema";
-import { closePeriod, getConsumption } from "@/lib/overhead/api";
-import { allocate, type AllocationPreview } from "@/lib/overhead/calc";
-import type { Criterion } from "@/lib/overhead/types";
+import { closePeriod, getOverheadPreview } from "@/lib/overhead/api";
+import type { Criterion, OverheadPreview } from "@/lib/overhead/types";
 import { Button } from "@/components/ui/button";
 import { InputField, zodFieldErrors } from "@/components/forms/form-field";
 
 const money = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const pct = new Intl.NumberFormat("es-VE", { style: "percent", maximumFractionDigits: 1 });
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
+const AMOUNT_RE = /^\d+(\.\d{1,2})?$/;
 
 /** Primer y ultimo dia del mes anterior (valor por defecto). */
 function lastMonth() {
@@ -30,31 +30,32 @@ export function ClosePeriodForm() {
   const [end, setEnd] = useState(def.end);
   const [criterion, setCriterion] = useState<Criterion>("proporcional");
   const [total, setTotal] = useState("");
-  const [preview, setPreview] = useState<AllocationPreview[] | null>(null);
+  const [preview, setPreview] = useState<OverheadPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [errors, setErrors] = useState<ClosePeriodErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  // Vista previa del reparto cada vez que cambian los datos
+  // Vista previa calculada por el backend (proyectos activos + dispatch_log).
   useEffect(() => {
-    const amount = Number(total);
-    if (!start || !end || end < start || !(amount > 0)) {
+    const amount = total.trim();
+    if (!start || !end || end < start || !AMOUNT_RE.test(amount) || !(Number(amount) > 0)) {
       setPreview(null);
       setPreviewError(null);
       return;
     }
     let cancelled = false;
-    getConsumption(start, end).then((rows) => {
-      if (cancelled) return;
-      try {
-        setPreview(allocate(amount, criterion, rows));
+    getOverheadPreview({ start_date: start, end_date: end, total_cost: amount, criterion })
+      .then((result) => {
+        if (cancelled) return;
+        setPreview(result);
         setPreviewError(null);
-      } catch (e) {
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
         setPreview(null);
-        setPreviewError(e instanceof Error ? e.message : "No se pudo calcular el reparto.");
-      }
-    });
+        setPreviewError(err instanceof Error ? err.message : "No se pudo calcular el reparto.");
+      });
     return () => { cancelled = true; };
   }, [start, end, criterion, total]);
 
@@ -66,6 +67,10 @@ export function ClosePeriodForm() {
     const parsed = closePeriodSchema.safeParse({ start_date: start, end_date: end, criterion, total_cost: total });
     if (!parsed.success) {
       setErrors(zodFieldErrors<keyof ClosePeriodErrors>(parsed.error.issues));
+      return;
+    }
+    if (!preview) {
+      setFormError("Espera la vista previa del reparto antes de cerrar el período.");
       return;
     }
     if (!window.confirm("Al cerrar el período el reparto queda registrado y no se puede modificar. ¿Continuar?")) return;
@@ -139,7 +144,7 @@ export function ClosePeriodForm() {
                 </tr>
               </thead>
               <tbody>
-                {preview.map((p) => (
+                {preview.allocations.map((p) => (
                   <tr key={p.project.id} className="border-t">
                     <td className="px-4 py-2 font-mono text-xs">{p.project.unique_code}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{numFmt.format(p.consumption)}</td>
@@ -149,9 +154,7 @@ export function ClosePeriodForm() {
                 ))}
                 <tr className="border-t bg-muted font-medium">
                   <td className="px-4 py-2" colSpan={3}>Total</td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {money.format(preview.reduce((s, p) => s + p.amount, 0))}
-                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money.format(preview.total_cost)}</td>
                 </tr>
               </tbody>
             </table>

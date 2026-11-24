@@ -20,10 +20,28 @@ export type OverheadPeriod = {
   allocations: Allocation[];
 };
 
+/** Reparto calculado por GET /overhead/preview (no guardado). */
+export type OverheadPreviewAllocation = {
+  project: { id: string; unique_code: string; name: string };
+  consumption: number;
+  share: number;
+  amount: number;
+};
+
+export type OverheadPreview = {
+  start_date: string;
+  end_date: string;
+  criterion: Criterion;
+  total_cost: number;
+  total_consumption: number;
+  allocations: OverheadPreviewAllocation[];
+};
+
 /** POST /overhead/periods. El backend calcula y guarda los repartos. */
 export type ClosePeriodInput = {
   start_date: string;
   end_date: string;
   criterion: Criterion;
-  total_cost: number;
+  /** Se envía como string para conservar los centavos exactos. */
+  total_cost: string;
 };

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { useExpenses } from "@/lib/expenses/use-expenses";
 import { changeExpenseStatus } from "@/lib/expenses/api";
-import { ACTION_LABELS, EXPENSE_STATUS, TRANSITIONS } from "@/lib/expenses/mock";
-import type { ExpenseStatusCode } from "@/lib/expenses/types";
+import { ACTION_LABELS, EXPENSE_STATUS, TRANSITIONS } from "@/lib/expenses/constants";
+import type { Expense, ExpenseStatusCode } from "@/lib/expenses/types";
 import { Button } from "@/components/ui/button";
 import { ExpenseStatusBadge } from "./expense-status-badge";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -14,7 +14,38 @@ const FLOW: ExpenseStatusCode[] = ["draft", "pending", "approved", "executed"];
 const numFmt = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 2 });
 const dateTimeFmt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" });
 
-export function ExpensesBoard() {
+type Props = {
+  /** Admin o aprobador: puede aprobar/rechazar/ejecutar. */
+  canReview: boolean;
+  /** El administrador puede enviar cualquier borrador y revisar el suyo. */
+  isAdmin: boolean;
+  currentUserId: string;
+};
+
+/**
+ * Acciones visibles segun el estado, el rol y el solicitante.
+ * El backend vuelve a validar todo (RN-7 y autoaprobación).
+ */
+function availableActions(
+  expense: Expense,
+  { canReview, isAdmin, currentUserId }: Props,
+): ExpenseStatusCode[] {
+  const code = expense.status.code;
+  if (code === "draft") {
+    return isAdmin || expense.requester.id === currentUserId ? TRANSITIONS.draft : [];
+  }
+  if (code === "pending") {
+    const selfCreated = expense.requester.id === currentUserId;
+    if (!canReview || (!isAdmin && selfCreated)) return [];
+    return TRANSITIONS.pending;
+  }
+  if (code === "approved") {
+    return canReview ? TRANSITIONS.approved : [];
+  }
+  return [];
+}
+
+export function ExpensesBoard(props: Props) {
   const { data, error, isLoading, mutate } = useExpenses();
   const [filter, setFilter] = useState<ExpenseStatusCode | "">("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -90,7 +121,7 @@ export function ExpensesBoard() {
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((e) => {
-            const next = TRANSITIONS[e.status.code];
+            const actions = availableActions(e, props);
             return (
               <li key={e.id} className="rounded-xl border bg-card p-4 text-card-foreground">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -106,12 +137,12 @@ export function ExpensesBoard() {
                         : `Cantidad: ${numFmt.format(e.count_raw_materials)} · sin material del catálogo`}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {e.project.name} · actualizada {dateTimeFmt.format(new Date(e.modifiet_at))}
+                      {e.project.name} · solicitada por {e.requester.full_name} · actualizada {dateTimeFmt.format(new Date(e.modifiet_at))}
                     </p>
                   </div>
-                  {next.length > 0 && (
+                  {actions.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {next.map((to) => (
+                      {actions.map((to) => (
                         <Button key={to} size="sm" disabled={busy === e.id}
                           variant={to === "rejected" ? "destructive" : to === "approved" || to === "executed" ? "default" : "outline"}
                           onClick={() => move(e.id, to)}>

@@ -1,88 +1,136 @@
 import { mutate } from "swr";
 import { auditUiEvent } from "@/lib/audit/ui-event";
-import { getDispatchSnapshot } from "@/lib/dispatch/api";
-import { MOCK_PROJECTS } from "@/lib/projects/mock";
-import { allocate, type ProjectConsumption } from "./calc";
-import type { ClosePeriodInput, OverheadPeriod } from "./types";
+import { fetchJson } from "@/lib/http";
+import type {
+  ClosePeriodInput,
+  Criterion,
+  OverheadPeriod,
+  OverheadPreview,
+} from "./types";
 
-export const OVERHEAD_KEY = "/overhead/periods";
+/** Clave SWR del flujo principal: períodos reales vía BFF. */
+export const OVERHEAD_KEY = "/api/overhead/periods?limit=100";
 
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
+type RawAllocation = Omit<
+  OverheadPeriod["allocations"][number],
+  "consumption" | "amount"
+> & { consumption: number | string; amount: number | string };
 
-let periods: OverheadPeriod[] = [
-  {
-    id: "01943000-0001-7000-8000-000000000001",
-    start_date: "2026-10-01",
-    end_date: "2026-10-31",
-    criterion: "equitativo",
-    total_cost: 900,
-    closed_by: { id: "u-5", full_name: "Laura Silva" },
-    closed_at: "2026-11-01T13:00:00Z",
-    allocations: [
-      { id: "a1", project: { id: "0193a1b2-0001-7000-8000-000000000001", unique_code: "FACYT-QUI-2026-001", name: "Síntesis de nanopartículas de plata" }, consumption: 0, amount: 450 },
-      { id: "a2", project: { id: "0193a1b2-0003-7000-8000-000000000003", unique_code: "FACYT-FIS-2025-012", name: "Caracterización de películas delgadas" }, consumption: 0, amount: 450 },
-    ],
-  },
-];
+type RawPeriod = Omit<
+  OverheadPeriod,
+  "total_cost" | "allocations"
+> & { total_cost: number | string; allocations: RawAllocation[] };
 
-/** MAÑANA: fetch(`/api${key}`) y convertir los Numeric a number. */
-export async function overheadFetcher(_key: string): Promise<OverheadPeriod[]> {
-  await delay();
-  return [...periods].sort((a, b) => b.start_date.localeCompare(a.start_date));
-}
+type RawPreview = Omit<
+  OverheadPreview,
+  "total_cost" | "total_consumption" | "allocations"
+> & {
+  total_cost: number | string;
+  total_consumption: number | string;
+  allocations: (Omit<
+    OverheadPreview["allocations"][number],
+    "consumption" | "share" | "amount"
+  > & {
+    consumption: number | string;
+    share: number | string;
+    amount: number | string;
+  })[];
+};
 
-/**
- * Proyectos activos del periodo y su consumo (despachos dentro del rango).
- * MAÑANA: GET /api/overhead/preview?start=..&end=.. (lo calcula FastAPI con dispatch_log).
- * Nota: suma cantidades; si hay unidades distintas conviene usar costo.
- */
-export async function getConsumption(start: string, end: string): Promise<ProjectConsumption[]> {
-  await delay(300);
-  const from = new Date(`${start}T00:00:00`).getTime();
-  const to = new Date(`${end}T23:59:59`).getTime();
-  const active = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución");
-  return active.map((p) => ({
-    project: { id: p.id, unique_code: p.unique_code, name: p.name },
-    consumption: getDispatchSnapshot()
-      .filter((d) => {
-        const t = new Date(d.material_requested_at).getTime();
-        return d.project.id === p.id && t >= from && t <= to;
-      })
-      .reduce((s, d) => s + d.use_raw_materials, 0),
-  }));
-}
+type Paginated<T> = { items: T[]; total: number; limit: number; offset: number };
 
-/** Rangos [a1,b1] y [a2,b2] se solapan (fechas YYYY-MM-DD, inclusivo). */
-const overlaps = (a1: string, b1: string, a2: string, b2: string) => a1 <= b2 && b1 >= a2;
-
-/**
- * MAÑANA: POST /api/overhead/periods. FastAPI calcula, guarda el periodo y sus
- * repartos en una transaccion; la restriccion de exclusion evita solapes (409).
- */
-export async function closePeriod(input: ClosePeriodInput): Promise<OverheadPeriod> {
-  const clash = periods.find((p) => overlaps(p.start_date, p.end_date, input.start_date, input.end_date));
-  if (clash) {
-    throw new Error(`Se solapa con el período ya cerrado ${clash.start_date} a ${clash.end_date}.`);
-  }
-  const rows = await getConsumption(input.start_date, input.end_date);
-  const preview = allocate(input.total_cost, input.criterion, rows);
-  await delay();
-
-  const period: OverheadPeriod = {
-    id: crypto.randomUUID(),
-    ...input,
-    closed_by: { id: "me", full_name: "Usuario actual" }, // el backend lo toma del token
-    closed_at: new Date().toISOString(),
-    allocations: preview.map((p) => ({
-      id: crypto.randomUUID(), project: p.project, consumption: p.consumption, amount: p.amount,
+function normalizePeriod(raw: RawPeriod): OverheadPeriod {
+  return {
+    ...raw,
+    total_cost: Number(raw.total_cost ?? 0),
+    allocations: raw.allocations.map((a) => ({
+      ...a,
+      consumption: Number(a.consumption ?? 0),
+      amount: Number(a.amount ?? 0),
     })),
   };
-  periods = [...periods, period];
+}
+
+function normalizePreview(raw: RawPreview): OverheadPreview {
+  return {
+    ...raw,
+    total_cost: Number(raw.total_cost ?? 0),
+    total_consumption: Number(raw.total_consumption ?? 0),
+    allocations: raw.allocations.map((a) => ({
+      ...a,
+      consumption: Number(a.consumption ?? 0),
+      share: Number(a.share ?? 0),
+      amount: Number(a.amount ?? 0),
+    })),
+  };
+}
+
+/** Fetcher SWR: períodos cerrados reales (solo admin/aprobador). */
+export async function overheadFetcher(key: string): Promise<OverheadPeriod[]> {
+  const page = await fetchJson<Paginated<RawPeriod>>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los períodos."
+  );
+  return page.items.map(normalizePeriod);
+}
+
+async function previewError(response: Response): Promise<Error> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string" && body.detail.trim()) {
+      return new Error(body.detail);
+    }
+    if (Array.isArray(body.detail)) {
+      const first = body.detail[0] as { msg?: unknown } | undefined;
+      if (first && typeof first.msg === "string") return new Error(first.msg);
+    }
+  } catch {
+    /* sin cuerpo JSON */
+  }
+  if (response.status === 403) return new Error("No tienes permiso para esta acción.");
+  return new Error("No se pudo calcular el reparto.");
+}
+
+/**
+ * GET /api/overhead/preview. El backend usa los proyectos activos y el
+ * consumo real de dispatch_log; aquí solo se muestra.
+ */
+export async function getOverheadPreview(input: {
+  start_date: string;
+  end_date: string;
+  total_cost: string;
+  criterion: Criterion;
+}): Promise<OverheadPreview> {
+  const params = new URLSearchParams(input);
+  let response: Response;
+  try {
+    response = await fetch(`/api/overhead/preview?${params}`, { method: "GET" });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor.");
+  }
+  if (!response.ok) throw await previewError(response);
+  return normalizePreview((await response.json()) as RawPreview);
+}
+
+/** POST /api/overhead/periods: el backend calcula y guarda el reparto. */
+export async function closePeriod(input: ClosePeriodInput): Promise<OverheadPeriod> {
+  const created = await fetchJson<RawPeriod>(
+    "/api/overhead/periods",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo cerrar el período."
+  );
+
+  const period = normalizePeriod(created);
   void mutate(OVERHEAD_KEY);
   auditUiEvent({
     entity: "OverheadPeriod",
     action: "close_period",
-    summary: `Período ${input.start_date} a ${input.end_date}`,
+    summary: `Período ${period.start_date} a ${period.end_date}`,
   });
   return period;
 }

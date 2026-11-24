@@ -1,9 +1,12 @@
+import { requireRole } from "@/components/auth/require-role";
 import { PageHeader } from "@/components/layout/page-header";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { ADMIN_OR_COORDINATOR } from "@/lib/auth/roles";
 
 export const metadata = { title: "Nueva solicitud de gasto" };
 
-export default function NewExpensePage() {
+export default async function NewExpensePage() {
+  await requireRole(ADMIN_OR_COORDINATOR);
   return (
     <main className="p-6">
       <PageHeader narrow title="Nueva solicitud de gasto"
