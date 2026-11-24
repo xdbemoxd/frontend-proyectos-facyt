@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { projectUpdateSchema, type ProjectUpdateErrors } from "@/lib/projects/schema";
 import { getProject, isProjectLocked, updateProject } from "@/lib/projects/api";
-import { STATUS } from "@/lib/projects/mock";
+import { useProjectCatalogs } from "@/lib/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/record-loader";
 
-export function ProjectEditForm({ id }: { id: string }) {
+export function ProjectEditForm({ id, canPrioritize = false }: { id: string; canPrioritize?: boolean }) {
   const router = useRouter();
   const project = useRecord(getProject, id);
+  const { data: catalogs, error: catalogsError } = useProjectCatalogs();
   const [errors, setErrors] = useState<ProjectUpdateErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -20,6 +21,7 @@ export function ProjectEditForm({ id }: { id: string }) {
   if (!project) return <RecordStatus loading={project === undefined} notFound="Proyecto no encontrado." />;
 
   const locked = isProjectLocked(project);
+  const statuses = catalogs?.statuses ?? [project.status];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,6 +52,11 @@ export function ProjectEditForm({ id }: { id: string }) {
       {formError && (
         <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>
       )}
+      {catalogsError && (
+        <p role="alert" className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+          No se pudieron cargar los estatus del servidor; solo se muestra el actual.
+        </p>
+      )}
       {locked && (
         <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           Este proyecto está finalizado: sus datos quedan cerrados y no se pueden editar.
@@ -64,23 +71,25 @@ export function ProjectEditForm({ id }: { id: string }) {
       </div>
 
       <fieldset disabled={locked} className="flex flex-col gap-5">
-        <InputField id="pr-edit-name" name="name" label="Nombre" required maxLength={255}
+        <InputField id="pr-edit-name" name="name" label="Nombre" required maxLength={150}
           defaultValue={project.name} error={errors.name} />
-        <TextareaField id="pr-edit-description" name="description" label="Descripción" maxLength={2000}
+        <TextareaField id="pr-edit-description" name="description" label="Descripción" maxLength={255}
           defaultValue={project.description ?? ""} error={errors.description} />
         <SelectField id="pr-edit-status" name="id_status" label="Estatus" required defaultValue={project.status.id}
-          options={Object.values(STATUS).map((s) => ({ value: s.id, label: s.name }))}
+          options={statuses.map((s) => ({ value: s.id, label: s.name }))}
           error={errors.id_status}
-          hint={`Si lo marcas como "${STATUS.finalizado.name}", ya no se podrá editar.`} />
+          hint={'Si lo marcas como "Finalizado", ya no se podrá editar.'} />
       </fieldset>
 
       <ReadOnlyField label="Responsable" value={`${project.user.full_name} · ${project.user.email}`} />
 
       <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
-        <Link href="/dashboard/priority"
-          className="mr-auto rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
-          Cambiar prioridad
-        </Link>
+        {canPrioritize && (
+          <Link href="/dashboard/priority"
+            className="mr-auto rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+            Cambiar prioridad
+          </Link>
+        )}
         <Link href="/dashboard"
           className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
           Cancelar

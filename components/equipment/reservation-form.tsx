@@ -6,20 +6,19 @@ import Link from "next/link";
 import { reservationSchema, type ReservationFormErrors } from "@/lib/equipment/schema";
 import { createReservation } from "@/lib/equipment/api";
 import { useEquipment } from "@/lib/equipment/use-equipment";
-import { useProjects } from "@/lib/projects/use-projects";
+import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function ReservationForm() {
   const router = useRouter();
   const { data: units, isLoading: loadingUnits } = useEquipment();
-  const { data: projects, isLoading: loadingProjects } = useProjects();
   const [errors, setErrors] = useState<ReservationFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  // Solo proyectos que pueden usar equipos
-  const activeProjects = (projects ?? []).filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
+  // Reservas siguen siendo mock: usan el catalogo mock hasta conectarse.
+  const activeProjects = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,7 +60,7 @@ export function ReservationForm() {
         error={errors.id_equipament_supplier} />
 
       <SelectField id="res-project" name="id_project" label="Proyecto" required defaultValue=""
-        placeholder={loadingProjects ? "Cargando…" : "Elige un proyecto"}
+        placeholder="Elige un proyecto"
         options={activeProjects.map((p) => ({ value: p.id, label: `${p.unique_code} · ${p.name}` }))}
         error={errors.id_project} />
 

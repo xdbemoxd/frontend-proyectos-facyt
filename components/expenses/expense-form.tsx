@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { expenseSchema, type ExpenseFormErrors } from "@/lib/expenses/schema";
 import { changeExpenseStatus, createExpense } from "@/lib/expenses/api";
-import { useProjects } from "@/lib/projects/use-projects";
 import { useStock } from "@/lib/inventory/use-stock";
+import { MOCK_PROJECTS } from "@/lib/projects/mock";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 
 export function ExpenseForm() {
   const router = useRouter();
-  const { data: projects, isLoading: lp } = useProjects();
   const { data: stock, isLoading: ls } = useStock();
   const [errors, setErrors] = useState<ExpenseFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -20,7 +19,8 @@ export function ExpenseForm() {
   const [itemId, setItemId] = useState("");
 
   const selected = stock?.find((s) => s.supplier_item_id === itemId);
-  const usable = (projects ?? []).filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
+  // Solicitudes de gasto siguen siendo mock: usan el catalogo mock.
+  const usable = MOCK_PROJECTS.filter((p) => p.status.name === "En ejecución" || p.status.name === "Propuesta");
 
   async function submit(form: HTMLFormElement, sendNow: boolean) {
     if (pending) return;
@@ -51,7 +51,7 @@ export function ExpenseForm() {
       )}
 
       <SelectField id="exp-project" name="id_project" label="Proyecto" required defaultValue=""
-        placeholder={lp ? "Cargando…" : "Elige el proyecto"}
+        placeholder="Elige el proyecto"
         options={usable.map((p) => ({ value: p.id, label: `${p.unique_code} · ${p.name}` }))}
         error={errors.id_project} />
 

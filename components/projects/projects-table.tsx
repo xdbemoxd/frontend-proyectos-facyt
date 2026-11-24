@@ -51,7 +51,7 @@ function ProgressBar({ value, label }: { value: number; label: string }) {
   );
 }
 
-function Row({ p }: { p: Project }) {
+function Row({ p, canEdit }: { p: Project; canEdit: boolean }) {
   return (
     <tr className="border-b align-top last:border-0">
       <td className="px-3 py-3 font-mono text-xs">{p.unique_code}</td>
@@ -70,14 +70,18 @@ function Row({ p }: { p: Project }) {
       <td className="px-3 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(p.create_at))}</td>
       <td className="px-3 py-3 text-xs whitespace-nowrap">{dateFmt.format(new Date(p.updated_at))}</td>
       <td className="px-3 py-3 text-right">
-        <EditLink href={`/dashboard/projects/${p.id}/edit`} label={p.name}
-          disabled={isProjectLocked(p)} disabledReason="Proyecto finalizado" />
+        {canEdit ? (
+          <EditLink href={`/dashboard/projects/${p.id}/edit`} label={p.name}
+            disabled={isProjectLocked(p)} disabledReason="Proyecto finalizado" />
+        ) : (
+          <span className="text-xs text-muted-foreground">Solo lectura</span>
+        )}
       </td>
     </tr>
   );
 }
 
-export function ProjectsTable() {
+export function ProjectsTable({ canEdit = true }: { canEdit?: boolean }) {
   const { data, error, isLoading, mutate } = useProjects();
 
   if (isLoading && !data) {
@@ -116,7 +120,7 @@ export function ProjectsTable() {
           </tr>
         </thead>
         <tbody>
-          {data.map((p) => <Row key={p.id} p={p} />)}
+          {data.map((p) => <Row key={p.id} p={p} canEdit={canEdit} />)}
         </tbody>
       </table>
     </div>

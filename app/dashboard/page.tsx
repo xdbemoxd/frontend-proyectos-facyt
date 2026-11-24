@@ -2,12 +2,17 @@ import { auth } from "@/auth";
 import { ProjectsTable } from "@/components/projects/projects-table";
 import { DashboardKpis } from "@/components/dashboard/dashboard-kpis";
 import { SectionArt } from "@/components/decor/section-art";
+import { normalizeRole } from "@/lib/auth/roles";
 
 export const metadata = { title: "Dashboard" };
 
 /** Dashboard = KPIs + listado de proyectos. */
 export default async function DashboardPage() {
   const session = await auth();
+  const role = normalizeRole(session?.user?.rol);
+  // El aprobador solo consulta: la edicion de datos generales es de admin y
+  // coordinador (el backend tambien lo exige).
+  const canEdit = role === "admin_sistema" || role === "coordinador";
   return (
     <main className="relative overflow-hidden p-6">
       <SectionArt variant="overview" />
@@ -20,7 +25,7 @@ export default async function DashboardPage() {
         <h2 id="projects-title" className="mb-4 font-heading text-lg font-medium">
           Proyectos
         </h2>
-        <ProjectsTable />
+        <ProjectsTable canEdit={canEdit} />
       </section>
     </main>
   );

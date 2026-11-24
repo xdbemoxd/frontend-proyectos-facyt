@@ -53,4 +53,12 @@ export type ProjectUpdateInput = {
   name: string;
   description: string | null;
   id_status: number;
+  progress?: number; // 0-100
+  budget_execution?: number; // 0-100
+};
+
+/** Catálogos reales que expone el backend para editar y priorizar. */
+export type ProjectCatalogs = {
+  statuses: Catalog[];
+  priorities: Catalog[];
 };

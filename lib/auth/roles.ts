@@ -15,6 +15,8 @@ export type Role = "admin_sistema" | "coordinador" | "aprobador";
 /** Roles que pueden ver/entrar a una seccion (el admin se agrega siempre). */
 export const ADMIN_ONLY: readonly Role[] = [];
 export const ADMIN_OR_APPROVER: readonly Role[] = ["aprobador"];
+/** Administrador o coordinador: edicion de datos generales de proyectos. */
+export const ADMIN_OR_COORDINATOR: readonly Role[] = ["coordinador"];
 
 export const ROLE_LABELS: Record<string, string> = {
   admin_sistema: "Administrador del sistema",
