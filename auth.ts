@@ -48,18 +48,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
 
-    // 3. Aquí pasamos los datos del JWT interno a la sesión pública del frontend
+    // 3. Aquí pasamos los datos del JWT interno a la sesión pública del frontend.
+    //    `backendToken` NUNCA sale de la cookie cifrada: solo lo lee el servidor
+    //    (ver lib/backend.ts) para firmar las llamadas a FastAPI.
     async session({ session, token }) {
       if (token && session.user) {
-        Object.assign(session.user, {
-          id: token.id,
-          fullname: token.fullname,
-          rol: token.rol,
-          token: token.backendToken,
-        });
-        if (typeof token.backendToken === "string") {
-          session.backendToken = token.backendToken;
-        }
+        session.user.id = String(token.id ?? "");
+        session.user.fullname = String(token.fullname ?? "");
+        session.user.rol = String(token.rol ?? "");
       }
       return session;
     }

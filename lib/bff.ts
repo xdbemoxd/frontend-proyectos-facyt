@@ -1,5 +1,37 @@
 import { NextResponse } from "next/server";
 
+/** UUID (cualquier versión). Local y barato: sin dependencias ni red. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+/** 422 uniforme para identificadores de ruta inválidos. */
+export function invalidId() {
+  return NextResponse.json({ detail: "Identificador inválido" }, { status: 422 });
+}
+
+/**
+ * Reconstruye la query string solo con los parámetros permitidos.
+ *
+ * Evita que el navegador inyecte parámetros que el backend no espera
+ * (p. ej. filtros internos o `debug=true`) y descarta duplicados: se toma
+ * el primer valor de cada clave.
+ */
+export function allowlistedQuery(
+  searchParams: URLSearchParams,
+  allowed: readonly string[]
+): string {
+  const params = new URLSearchParams();
+  for (const key of allowed) {
+    const value = searchParams.get(key);
+    if (value !== null) params.set(key, value);
+  }
+  return params.size ? `?${params}` : "";
+}
+
 /**
  * Reenvía la respuesta de FastAPI al navegador.
  *

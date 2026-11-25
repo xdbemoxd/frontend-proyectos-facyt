@@ -1,43 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { backendFetch } from "@/lib/backend";
+import {
+  forwardBackendResponse,
+  invalidId,
+  isUuid,
+  unauthenticated,
+  validationErrors,
+} from "@/lib/bff";
+import { userPatchSchema } from "@/lib/users/schema";
 
-async function forward(response: Response) {
-  const body = await response.text();
-  return new NextResponse(body, {
-    status: response.status,
-    headers: {
-      "content-type":
-        response.headers.get("content-type") ?? "application/json",
-    },
-  });
-}
+type Context = { params: Promise<{ id: string }> };
 
-export async function GET(
-  _request: NextRequest,
-  context: RouteContext<"/api/users/[id]">,
-) {
+export async function GET(_request: NextRequest, context: Context) {
   const { id } = await context.params;
+  if (!isUuid(id)) return invalidId();
+
   try {
-    const response = await backendFetch(`/api/user/${id}`);
-    return forward(response);
+    const response = await backendFetch(`/api/user/${encodeURIComponent(id)}`);
+    return forwardBackendResponse(response);
   } catch {
-    return NextResponse.json({ detail: "No autenticado" }, { status: 401 });
+    return unauthenticated();
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext<"/api/users/[id]">,
-) {
+export async function PATCH(request: NextRequest, context: Context) {
   const { id } = await context.params;
+  if (!isUuid(id)) return invalidId();
+
+  let body: unknown;
   try {
-    const payload = await request.json();
-    const response = await backendFetch(`/api/user/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
-    return forward(response);
+    body = await request.json();
   } catch {
-    return NextResponse.json({ detail: "No autenticado" }, { status: 401 });
+    return validationErrors([
+      { path: [], message: "Cuerpo JSON inválido", code: "invalid_json" },
+    ]);
+  }
+
+  const parsed = userPatchSchema.safeParse(body);
+  if (!parsed.success) return validationErrors(parsed.error.issues);
+
+  try {
+    const response = await backendFetch(
+      `/api/user/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(parsed.data),
+      }
+    );
+    return forwardBackendResponse(response);
+  } catch {
+    return unauthenticated();
   }
 }

@@ -21,5 +21,27 @@ export const userUpdateSchema = z.object({
   is_active: z.union([z.literal("on"), z.literal("true"), z.undefined()]).transform((v) => v !== undefined),
 });
 
+/**
+ * Body que acepta el BFF en PATCH /api/users/:id.
+ * Espeja `UserUpdate` del backend: nada de email, id, rol resuelto ni
+ * campos internos (mass assignment).
+ */
+export const userPatchSchema = z
+  .object({
+    name: z.string().trim().max(255, "Máximo 255 caracteres.").nullable().optional(),
+    lastname: z.string().trim().max(255, "Máximo 255 caracteres.").nullable().optional(),
+    id_rol: z.uuid("Rol inválido.").optional(),
+    is_active: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.lastname !== undefined ||
+      data.id_rol !== undefined ||
+      data.is_active !== undefined,
+    "Nada que actualizar."
+  );
+
 export type UserCreateErrors = Partial<Record<"email" | "id_rol", string>>;
 export type UserUpdateErrors = Partial<Record<"id_rol" | "is_active", string>>;

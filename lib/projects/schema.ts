@@ -30,7 +30,11 @@ export const projectUpdateSchema = z.object({
     .min(3, "Escribe al menos 3 caracteres.")
     .max(150, "Máximo 150 caracteres."),
   description: optional(z.string().trim().max(255, "Máximo 255 caracteres.")),
-  id_status: z.coerce.number().int().positive("Elige un estatus."),
+  /**
+   * Solo el administrador puede cambiar el estatus. Para el coordinador el
+   * campo no se renderiza y el BFF/backend lo rechazan.
+   */
+  id_status: z.coerce.number().int().positive("Elige un estatus.").optional(),
 })
 
 export type ProjectUpdateErrors = Partial<

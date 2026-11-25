@@ -52,8 +52,11 @@ export type PriorityChangeInput = {
 export type ProjectUpdateInput = {
   name: string;
   description: string | null;
-  id_status: number;
+  /** Solo administrador: el coordinador no puede cambiar el estatus. */
+  id_status?: number;
+  /** Solo administrador. */
   progress?: number; // 0-100
+  /** Solo administrador. */
   budget_execution?: number; // 0-100
 };
 

@@ -10,13 +10,13 @@ export const metadata: Metadata = { title: "Editar proyecto" };
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireRole(ADMIN_OR_COORDINATOR);
-  const canPrioritize = normalizeRole(session.user.rol) === "admin_sistema";
+  const isAdmin = normalizeRole(session.user.rol) === "admin_sistema";
   return (
     <main className="relative overflow-hidden p-6">
       <SectionArt variant="projects" />
       <PageHeader narrow title="Editar proyecto" description="El código y la prioridad no se cambian aquí."
         back={{ href: "/dashboard", label: "Dashboard" }} />
-      <ProjectEditForm id={id} canPrioritize={canPrioritize} />
+      <ProjectEditForm id={id} canPrioritize={isAdmin} canEditStatus={isAdmin} />
     </main>
   );
 }

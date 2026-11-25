@@ -1,18 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { backendFetch } from "@/lib/backend";
+import {
+  allowlistedQuery,
+  forwardBackendResponse,
+  unauthenticated,
+} from "@/lib/bff";
+
+/** Espeja los filtros que acepta GET /api/audit del backend. */
+const ALLOWED_PARAMS = [
+  "limit",
+  "offset",
+  "entity",
+  "action",
+  "outcome",
+  "status_code",
+  "user_id",
+  "request_id",
+  "path",
+  "from_date",
+  "to_date",
+] as const;
 
 export async function GET(request: NextRequest) {
+  const query = allowlistedQuery(request.nextUrl.searchParams, ALLOWED_PARAMS);
   try {
-    const response = await backendFetch(`/api/audit${request.nextUrl.search}`);
-    const body = await response.text();
-    return new NextResponse(body, {
-      status: response.status,
-      headers: {
-        "content-type":
-          response.headers.get("content-type") ?? "application/json",
-      },
-    });
+    const response = await backendFetch(`/api/audit${query}`);
+    return forwardBackendResponse(response);
   } catch {
-    return NextResponse.json({ detail: "No autenticado" }, { status: 401 });
+    return unauthenticated();
   }
 }

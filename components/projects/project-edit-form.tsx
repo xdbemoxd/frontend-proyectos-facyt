@@ -10,7 +10,16 @@ import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
 import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/record-loader";
 
-export function ProjectEditForm({ id, canPrioritize = false }: { id: string; canPrioritize?: boolean }) {
+export function ProjectEditForm({
+  id,
+  canPrioritize = false,
+  canEditStatus = false,
+}: {
+  id: string;
+  canPrioritize?: boolean;
+  /** Solo el administrador cambia estatus (y avance/ejecución) del proyecto. */
+  canEditStatus?: boolean;
+}) {
   const router = useRouter();
   const project = useRecord(getProject, id);
   const { data: catalogs, error: catalogsError } = useProjectCatalogs();
@@ -75,10 +84,15 @@ export function ProjectEditForm({ id, canPrioritize = false }: { id: string; can
           defaultValue={project.name} error={errors.name} />
         <TextareaField id="pr-edit-description" name="description" label="Descripción" maxLength={255}
           defaultValue={project.description ?? ""} error={errors.description} />
-        <SelectField id="pr-edit-status" name="id_status" label="Estatus" required defaultValue={project.status.id}
-          options={statuses.map((s) => ({ value: s.id, label: s.name }))}
-          error={errors.id_status}
-          hint={'Si lo marcas como "Finalizado", ya no se podrá editar.'} />
+        {canEditStatus ? (
+          <SelectField id="pr-edit-status" name="id_status" label="Estatus" required defaultValue={project.status.id}
+            options={statuses.map((s) => ({ value: s.id, label: s.name }))}
+            error={errors.id_status}
+            hint={'Si lo marcas como "Finalizado", ya no se podrá editar.'} />
+        ) : (
+          <ReadOnlyField label="Estatus" value={project.status.name}
+            hint="El estatus, el avance y la ejecución presupuestaria los actualiza el administrador." />
+        )}
       </fieldset>
 
       <ReadOnlyField label="Responsable" value={`${project.user.full_name} · ${project.user.email}`} />
