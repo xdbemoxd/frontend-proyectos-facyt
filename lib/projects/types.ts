@@ -62,3 +62,23 @@ export type ProjectCatalogs = {
   statuses: Catalog[];
   priorities: Catalog[];
 };
+
+/**
+ * POST /projects. El backend arma el código ({AREA}-{AÑO}-{NNN}) y deja el
+ * proyecto en "Propuesta" con prioridad "Media".
+ * `id_user` lo envía solo el administrador (coordinador responsable).
+ */
+export type ProjectCreateInput = {
+  area_code: string;
+  name: string;
+  description: string | null;
+  id_user?: string;
+};
+
+/** Coordinador activo que puede ser responsable de un proyecto. */
+export type Coordinator = {
+  id: string;
+  full_name: string;
+  email: string;
+};
+

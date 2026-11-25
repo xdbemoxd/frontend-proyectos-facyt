@@ -1,6 +1,5 @@
 import { mutate } from "swr";
 import { fetchJson } from "@/lib/http";
-import { MOCK_STOCK } from "./mock";
 import type {
   InventoryCatalogs,
   RawMaterialInput,
@@ -118,35 +117,4 @@ export async function getStockItem(
     throw new Error("No tienes permiso para ver este registro.");
   if (!response.ok) throw new Error("No se pudo cargar la materia prima.");
   return normalizeStock((await response.json()) as RawStockItem);
-}
-
-/* ------------------------------------------------------------------------- */
-/* Fallback SOLO para los módulos que aún son mock (gastos / prorrateo).      */
-/* El flujo principal de inventario, lotes y despachos ya usa el backend.     */
-/* ------------------------------------------------------------------------- */
-
-let store: StockItem[] = [...MOCK_STOCK];
-
-/** Foto en memoria de los datos demo; NO refleja el stock real del backend. */
-export const getStockSnapshot = (): StockItem[] => store;
-
-/** Simula el trigger de stock para los módulos demo. */
-export function mockAdjustStock(supplierItemId: string, delta: number): void {
-  store = store.map((s) => {
-    if (s.supplier_item_id !== supplierItemId) return s;
-    const current = Math.round((s.current_stock + delta) * 100) / 100;
-    if (current < 0) throw new Error("Stock insuficiente.");
-    return {
-      ...s,
-      current_stock: current,
-      stock_status:
-        current <= 0
-          ? "Agotado"
-          : current <= s.minimun_stock
-            ? "Alerta Stock Mínimo"
-            : "Normal",
-      is_critical: current <= s.minimun_stock,
-    };
-  });
-  void mutate(STOCK_KEY);
 }

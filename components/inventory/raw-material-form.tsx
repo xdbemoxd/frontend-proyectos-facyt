@@ -6,7 +6,7 @@ import Link from "next/link";
 import { rawMaterialSchema, type RawMaterialFormErrors } from "@/lib/inventory/schema";
 import { createRawMaterial } from "@/lib/inventory/api";
 import { useInventoryCatalogs } from "@/lib/inventory/use-stock";
-import { UNITS } from "@/lib/inventory/mock";
+import { unitOptions } from "@/lib/inventory/constants";
 import { useVendors } from "@/lib/vendors/use-vendors";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, TextareaField, zodFieldErrors } from "@/components/forms/form-field";
@@ -61,7 +61,7 @@ export function RawMaterialForm() {
             options={(catalogs?.resource_types ?? []).map((t) => ({ value: t.id, label: t.name }))}
             error={errors.resource_type_id} />
           <SelectField id="rm-unit" name="unit" label="Unidad" required defaultValue="unidad"
-            options={UNITS.map((u) => ({ value: u, label: u }))}
+            options={unitOptions()}
             error={errors.unit} />
         </div>
       </fieldset>

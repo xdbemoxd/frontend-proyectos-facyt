@@ -6,7 +6,7 @@ import Link from "next/link";
 import { rawMaterialUpdateSchema, type RawMaterialUpdateErrors } from "@/lib/inventory/schema";
 import { getStockItem, updateRawMaterial } from "@/lib/inventory/api";
 import { useInventoryCatalogs } from "@/lib/inventory/use-stock";
-import { UNITS } from "@/lib/inventory/mock";
+import { unitOptions } from "@/lib/inventory/constants";
 import { Button } from "@/components/ui/button";
 import { InputField, SelectField, zodFieldErrors } from "@/components/forms/form-field";
 import { ReadOnlyField, RecordStatus, useRecord } from "@/components/forms/record-loader";
@@ -71,7 +71,7 @@ export function RawMaterialEditForm({ id }: { id: string }) {
             error={errors.resource_type_id} />
           <SelectField id="rm-edit-unit" name="unit" label="Unidad" required defaultValue={item.unit}
             disabled={unitLocked}
-            options={UNITS.map((u) => ({ value: u, label: u }))}
+            options={unitOptions(item.unit)}
             error={errors.unit}
             hint={unitLocked ? "Ya tiene movimientos de stock: la unidad no se puede cambiar." : undefined} />
           {unitLocked && <input type="hidden" name="unit" value={item.unit} />}

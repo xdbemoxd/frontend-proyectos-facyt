@@ -1,7 +1,6 @@
 import { mutate } from "swr";
 import { STOCK_KEY } from "@/lib/inventory/api";
 import { fetchJson } from "@/lib/http";
-import { MOCK_DISPATCH } from "./mock";
 import type { Dispatch, DispatchInput } from "./types";
 
 /** Clave SWR del flujo principal: bitácora real vía BFF. */
@@ -51,12 +50,3 @@ export async function createDispatch(input: DispatchInput): Promise<Dispatch> {
   void mutate(STOCK_KEY);
   return dispatch;
 }
-
-/* ------------------------------------------------------------------------- */
-/* Fallback SOLO para el prorrateo (aún mock), que calcula consumos demo.     */
-/* ------------------------------------------------------------------------- */
-
-const dispatches: Dispatch[] = [...MOCK_DISPATCH];
-
-/** Foto demo de despachos; NO refleja la bitácora real del backend. */
-export const getDispatchSnapshot = (): Dispatch[] => dispatches;

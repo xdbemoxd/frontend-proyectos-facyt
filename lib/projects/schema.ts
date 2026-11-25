@@ -83,3 +83,40 @@ export const projectPatchSchema = z
       ),
     "Nada que actualizar."
   )
+
+/** Siglas del área: 2 a 6 letras (QUI, BIO, FIS…). */
+const areaCode = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2,6}$/, "Usa de 2 a 6 letras, sin números ni espacios. Ej: QUI")
+  .transform((v) => v.toUpperCase())
+
+/** Formulario de alta (FormData). `id_user` solo lo trae el administrador. */
+export const projectCreateSchema = z.object({
+  area_code: areaCode,
+  name: z
+    .string()
+    .trim()
+    .min(3, "Escribe al menos 3 caracteres.")
+    .max(150, "Máximo 150 caracteres."),
+  description: optional(z.string().trim().max(255, "Máximo 255 caracteres.")),
+  id_user: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+})
+
+export type ProjectCreateErrors = Partial<
+  Record<keyof z.input<typeof projectCreateSchema>, string>
+>
+
+/** Body que acepta el BFF en POST /api/projects (espeja ProjectCreate). */
+export const projectPostSchema = z
+  .object({
+    area_code: areaCode,
+    name: z.string().trim().min(3).max(150),
+    description: z.string().trim().max(255).nullable().optional(),
+    id_user: z.string().uuid("Coordinador inválido.").optional(),
+  })
+  .strict()
+

@@ -2,10 +2,12 @@ import { mutate } from "swr"
 import { handleSessionExpired } from "@/lib/session"
 import type {
   Catalog,
+  Coordinator,
   PriorityChange,
   PriorityChangeInput,
   Project,
   ProjectCatalogs,
+  ProjectCreateInput,
   ProjectUpdateInput,
 } from "./types"
 
@@ -13,6 +15,7 @@ import type {
 export const PROJECTS_KEY = "/api/projects?limit=200"
 export const PRIORITY_LOG_KEY = "/api/projects/priority-log?limit=100"
 export const CATALOGS_KEY = "/api/projects/catalogs"
+export const COORDINATORS_KEY = "/api/projects/coordinators"
 
 type RawProject = {
   id: string
@@ -236,3 +239,33 @@ export async function updateProject(
   void mutate(PROJECTS_KEY)
   return project
 }
+
+/** Coordinadores activos (solo administrador). */
+export async function coordinatorsFetcher(key: string): Promise<Coordinator[]> {
+  return fetchJson<Coordinator[]>(
+    key,
+    { method: "GET" },
+    "No se pudieron cargar los coordinadores."
+  )
+}
+
+/** POST /api/projects. Devuelve el proyecto con su código ya generado. */
+export async function createProject(
+  input: ProjectCreateInput
+): Promise<Project> {
+  const created = await fetchJson<RawProject>(
+    "/api/projects",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    "No se pudo registrar el proyecto."
+  )
+
+  const project = normalizeProject(created)
+  void mutate(PROJECTS_KEY)
+  void mutate(PRIORITY_LOG_KEY)
+  return project
+}
+
